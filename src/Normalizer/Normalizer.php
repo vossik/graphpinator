@@ -87,8 +87,8 @@ final class Normalizer
     {
         $rootObject = match ($operation->getType()) {
             OperationType::QUERY => $this->schema->getQuery(),
-            \Graphpinator\Tokenizer\OperationType::MUTATION => $this->schema->getMutation(),
-            \Graphpinator\Tokenizer\OperationType::SUBSCRIPTION => $this->schema->getSubscription(),
+            OperationType::MUTATION => $this->schema->getMutation(),
+            OperationType::SUBSCRIPTION => $this->schema->getSubscription(),
         };
 
         if (!$rootObject instanceof \Graphpinator\Typesystem\Type) {
@@ -115,7 +115,7 @@ final class Normalizer
 
     private function normalizeVariables(
         \Graphpinator\Parser\Variable\VariableSet $variableSet,
-    ) : \Graphpinator\Normalizer\Variable\VariableSet
+    ) : VariableSet
     {
         $normalized = [];
 
@@ -125,7 +125,7 @@ final class Normalizer
             $this->path->pop();
         }
 
-        return new \Graphpinator\Normalizer\Variable\VariableSet($normalized);
+        return new VariableSet($normalized);
     }
 
     private function normalizeVariable(
@@ -315,9 +315,9 @@ final class Normalizer
             }
 
             $default = $argument->getDefaultValue();
-            $items[] = $default instanceof \Graphpinator\Value\ArgumentValue
+            $items[] = $default instanceof ArgumentValue
                 ? $default
-                : new \Graphpinator\Value\ArgumentValue(
+                : new ArgumentValue(
                     $argument,
                     $argument->getType()->accept(new \Graphpinator\Value\ConvertRawValueVisitor(null, $this->path)),
                     false,

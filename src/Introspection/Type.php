@@ -153,7 +153,7 @@ final class Type extends \Graphpinator\Typesystem\Type
                     return new \Graphpinator\Typesystem\EnumItem\EnumItemSet($filtered);
                 },
             )->setArguments(new ArgumentSet([
-                \Graphpinator\Typesystem\Argument\Argument::create(
+                Argument::create(
                     'includeDeprecated',
                     Container::Boolean()->notNull(),
                 )->setDefaultValue(false),
@@ -186,7 +186,7 @@ final class Type extends \Graphpinator\Typesystem\Type
                     return new ArgumentSet($filtered);
                 },
             )->setArguments(new ArgumentSet([
-                \Graphpinator\Typesystem\Argument\Argument::create(
+                Argument::create(
                     'includeDeprecated',
                     Container::Boolean()->notNull(),
                 )->setDefaultValue(false),

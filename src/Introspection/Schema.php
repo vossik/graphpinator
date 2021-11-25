@@ -53,14 +53,14 @@ final class Schema extends \Graphpinator\Typesystem\Type
             new ResolvableField(
                 'mutationType',
                 $this->container->getType('__Type'),
-                static function (TSchema $schema) : ?\Graphpinator\Typesystem\Contract\Type {
+                static function (TSchema $schema) : ?Type {
                     return $schema->getMutation();
                 },
             ),
             new ResolvableField(
                 'subscriptionType',
                 $this->container->getType('__Type'),
-                static function (TSchema $schema) : ?\Graphpinator\Typesystem\Contract\Type {
+                static function (TSchema $schema) : ?Type {
                     return $schema->getMutation();
                 },
             ),

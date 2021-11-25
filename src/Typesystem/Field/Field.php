@@ -31,7 +31,7 @@ class Field implements \Graphpinator\Typesystem\Contract\Component
         $this->directiveUsages = new DirectiveUsageSet();
     }
 
-    public static function create(string $name, \Graphpinator\Typesystem\Contract\Outputable $type) : self
+    public static function create(string $name, Outputable $type) : self
     {
         return new self($name, $type);
     }
@@ -41,7 +41,7 @@ class Field implements \Graphpinator\Typesystem\Contract\Component
         return $this->name;
     }
 
-    final public function getType() : \Graphpinator\Typesystem\Contract\Outputable
+    final public function getType() : Outputable
     {
         return $this->type;
     }

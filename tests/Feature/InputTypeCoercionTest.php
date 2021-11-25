@@ -20,14 +20,14 @@ final class InputTypeCoercionTest extends \PHPUnit\Framework\TestCase
 
             protected function getFieldDefinition() : ArgumentSet
             {
-                return new \Graphpinator\Typesystem\Argument\ArgumentSet([
+                return new ArgumentSet([
                     new Argument(
                         'string',
                         Container::String(),
                     ),
-                    new \Graphpinator\Typesystem\Argument\Argument(
+                    new Argument(
                         'stringNotNull',
-                        \Graphpinator\Typesystem\Container::String()->notNull(),
+                        Container::String()->notNull(),
                     ),
                 ]);
             }
@@ -91,7 +91,7 @@ final class InputTypeCoercionTest extends \PHPUnit\Framework\TestCase
                 return new ResolvableFieldSet([
                     ResolvableField::create(
                         'field1',
-                        \Graphpinator\Typesystem\Container::String(),
+                        Container::String(),
                         static function($parent, \stdClass $arg) : string {
                             $first = \property_exists($arg, 'string')
                                 ? $arg->string
@@ -99,8 +99,8 @@ final class InputTypeCoercionTest extends \PHPUnit\Framework\TestCase
 
                             return $first . ' ' . $arg->stringNotNull;
                         },
-                    )->setArguments(new \Graphpinator\Typesystem\Argument\ArgumentSet([
-                        new \Graphpinator\Typesystem\Argument\Argument(
+                    )->setArguments(new ArgumentSet([
+                        new Argument(
                             'arg',
                             InputTypeCoercionTest::getSimpleInput(),
                         ),

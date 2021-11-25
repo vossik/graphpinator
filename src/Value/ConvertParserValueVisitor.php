@@ -52,7 +52,7 @@ final class ConvertParserValueVisitor implements \Graphpinator\Parser\Value\Valu
         }
 
         if (!$this->type instanceof \Graphpinator\Typesystem\ListType) {
-            throw new \Graphpinator\Exception\Value\InvalidValue($this->type->printName(), [], true);
+            throw new InvalidValue($this->type->printName(), [], true);
         }
 
         $inner = [];
@@ -80,7 +80,7 @@ final class ConvertParserValueVisitor implements \Graphpinator\Parser\Value\Valu
         }
 
         if (!$this->type instanceof \Graphpinator\Typesystem\InputType) {
-            throw new \Graphpinator\Exception\Value\InvalidValue($this->type->printName(), new \stdClass(), true);
+            throw new InvalidValue($this->type->printName(), new \stdClass(), true);
         }
 
         foreach ($objectVal->getValue() as $name => $temp) {

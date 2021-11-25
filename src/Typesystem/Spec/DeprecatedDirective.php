@@ -49,7 +49,7 @@ final class DeprecatedDirective extends \Graphpinator\Typesystem\Directive imple
 
     public function resolveFieldDefinitionBefore(
         ArgumentValueSet $arguments,
-        \Graphpinator\Value\ResolvedValue $parentValue,
+        ResolvedValue $parentValue,
         ArgumentValueSet $fieldArguments,
     ) : void
     {
@@ -58,7 +58,7 @@ final class DeprecatedDirective extends \Graphpinator\Typesystem\Directive imple
 
     public function resolveFieldDefinitionAfter(
         ArgumentValueSet $arguments,
-        \Graphpinator\Value\ResolvedValue $resolvedValue,
+        ResolvedValue $resolvedValue,
         ArgumentValueSet $fieldArguments,
     ) : void
     {

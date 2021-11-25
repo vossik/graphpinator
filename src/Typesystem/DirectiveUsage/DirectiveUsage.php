@@ -25,7 +25,7 @@ final class DirectiveUsage implements \Graphpinator\Typesystem\Contract\Componen
             throw new DirectiveUsageArgumentsInvalidMap();
         }
 
-        $this->argumentValues = new \Graphpinator\Value\ArgumentValueSet(
+        $this->argumentValues = new ArgumentValueSet(
             (array) \Graphpinator\Value\ConvertRawValueVisitor::convertArgumentSet(
                 $directive->getArguments(),
                 (object) $arguments,
@@ -39,7 +39,7 @@ final class DirectiveUsage implements \Graphpinator\Typesystem\Contract\Componen
         return $this->directive;
     }
 
-    public function getArgumentValues() : \Graphpinator\Value\ArgumentValueSet
+    public function getArgumentValues() : ArgumentValueSet
     {
         return $this->argumentValues;
     }

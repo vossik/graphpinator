@@ -23,11 +23,11 @@ interface FieldLocation extends ExecutableDirective
     ) : bool;
 
     public function resolveFieldBefore(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
+        ArgumentValueSet $arguments,
     ) : string;
 
     public function resolveFieldAfter(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
+        ArgumentValueSet $arguments,
         \Graphpinator\Value\FieldValue $fieldValue,
     ) : string;
 }
