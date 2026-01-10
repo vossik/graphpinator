@@ -4,76 +4,99 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem;
 
-abstract class Type extends \Graphpinator\Typesystem\Contract\ConcreteType implements
-    \Graphpinator\Typesystem\Contract\TypeConditionable,
-    \Graphpinator\Typesystem\Contract\InterfaceImplementor
-{
-    use \Graphpinator\Typesystem\Utils\TInterfaceImplementor;
-    use \Graphpinator\Typesystem\Utils\TMetaFields;
-    use \Graphpinator\Typesystem\Utils\THasDirectives;
+use Graphpinator\Typesystem\Contract\InterfaceImplementor;
+use Graphpinator\Typesystem\Contract\NamedType;
+use Graphpinator\Typesystem\Contract\NamedTypeVisitor;
+use Graphpinator\Typesystem\Contract\TypeConditionable;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet;
+use Graphpinator\Typesystem\Field\ResolvableField;
+use Graphpinator\Typesystem\Field\ResolvableFieldSet;
+use Graphpinator\Typesystem\Location\ObjectLocation;
+use Graphpinator\Typesystem\Utils\THasDirectives;
+use Graphpinator\Typesystem\Utils\TInterfaceImplementor;
+use Graphpinator\Typesystem\Utils\TMetaFields;
 
-    public function __construct(?\Graphpinator\Typesystem\InterfaceSet $implements = null)
+abstract class Type extends NamedType implements TypeConditionable, InterfaceImplementor
+{
+    use TInterfaceImplementor;
+    use TMetaFields;
+    use THasDirectives;
+
+    public function __construct(
+        InterfaceSet $implements = new InterfaceSet([]),
+    )
     {
-        $this->implements = $implements
-            ?? new \Graphpinator\Typesystem\InterfaceSet([]);
-        $this->directiveUsages = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet();
+        $this->implements = $implements;
+        $this->directiveUsages = new DirectiveUsageSet();
     }
 
     abstract public function validateNonNullValue(mixed $rawValue) : bool;
 
-    final public function addMetaField(\Graphpinator\Typesystem\Field\ResolvableField $field) : void
+    final public function addMetaField(ResolvableField $field) : void
     {
         $this->getMetaFields()->offsetSet($field->getName(), $field);
     }
 
-    final public function isInstanceOf(\Graphpinator\Typesystem\Contract\Type $type) : bool
+    #[\Override]
+    final public function getFields() : ResolvableFieldSet
     {
-        if ($type instanceof \Graphpinator\Typesystem\Contract\AbstractType) {
-            return $type->isImplementedBy($this);
-        }
-
-        return parent::isInstanceOf($type);
-    }
-
-    final public function getFields() : \Graphpinator\Typesystem\Field\ResolvableFieldSet
-    {
-        if (!$this->fields instanceof \Graphpinator\Typesystem\Field\ResolvableFieldSet) {
+        if (!$this->fields instanceof ResolvableFieldSet) {
             $this->fields = $this->getFieldDefinition();
-
-            if (\Graphpinator\Graphpinator::$validateSchema) {
-                if ($this->fields->count() === 0) {
-                    throw new \Graphpinator\Typesystem\Exception\InterfaceOrTypeMustDefineOneOrMoreFields();
-                }
-
-                $this->validateInterfaceContract();
-            }
+            $this->inheritDescriptions();
         }
 
-        \assert($this->fields instanceof \Graphpinator\Typesystem\Field\ResolvableFieldSet);
+        \assert($this->fields instanceof ResolvableFieldSet);
 
         return $this->fields;
     }
 
-    final public function accept(\Graphpinator\Typesystem\Contract\NamedTypeVisitor $visitor) : mixed
+    #[\Override]
+    final public function accept(NamedTypeVisitor $visitor) : mixed
     {
         return $visitor->visitType($this);
     }
 
-    final public function addDirective(
-        \Graphpinator\Typesystem\Location\ObjectLocation $directive,
-        array $arguments = [],
-    ) : static
+    /**
+     * @param ObjectLocation $directive
+     * @phpcs:ignore
+     * @param array<string, mixed> $arguments
+     */
+    final public function addDirective(ObjectLocation $directive, array $arguments = []) : static
     {
-        $usage = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage($directive, $arguments);
-
-        if (\Graphpinator\Graphpinator::$validateSchema && !$directive->validateObjectUsage($this, $usage->getArgumentValues())) {
-            throw new \Graphpinator\Typesystem\Exception\DirectiveIncorrectType();
-        }
-
-        $this->directiveUsages[] = $usage;
+        $this->directiveUsages[] = new DirectiveUsage($directive, $arguments);
 
         return $this;
     }
 
-    abstract protected function getFieldDefinition() : \Graphpinator\Typesystem\Field\ResolvableFieldSet;
+    abstract protected function getFieldDefinition() : ResolvableFieldSet;
+
+    private function inheritDescriptions() : void
+    {
+        foreach ($this->implements as $interfaceType) {
+            foreach ($interfaceType->getFields() as $interfaceField) {
+                if (!$this->fields->offsetExists($interfaceField->getName())) {
+                    continue;
+                }
+
+                $currentField = $this->fields[$interfaceField->getName()];
+
+                if ($currentField->getDescription() === null && $interfaceField->getDescription() !== null) {
+                    $currentField->setDescription($interfaceField->getDescription());
+                }
+
+                foreach ($interfaceField->getArguments() as $interfaceArgument) {
+                    if (!$currentField->getArguments()->offsetExists($interfaceArgument->getName())) {
+                        continue;
+                    }
+
+                    $currentArgument = $currentField->getArguments()[$interfaceArgument->getName()];
+
+                    if ($currentArgument->getDescription() === null && $interfaceArgument->getDescription() !== null) {
+                        $currentArgument->setDescription($interfaceArgument->getDescription());
+                    }
+                }
+            }
+        }
+    }
 }

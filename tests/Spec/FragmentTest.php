@@ -4,11 +4,20 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Tests\Spec;
 
-use \Infinityloop\Utils\Json;
+use Graphpinator\Graphpinator;
+use Graphpinator\Normalizer\Exception\ConflictingFieldAlias;
+use Graphpinator\Normalizer\Exception\ConflictingFieldArguments;
+use Graphpinator\Normalizer\Exception\FragmentCycle;
+use Graphpinator\Normalizer\Exception\InvalidFragmentType;
+use Graphpinator\Normalizer\Exception\UnknownFragment;
+use Graphpinator\Request\JsonRequestFactory;
+use Infinityloop\Utils\Json;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
-final class FragmentTest extends \PHPUnit\Framework\TestCase
+final class FragmentTest extends TestCase
 {
-    public function simpleDataProvider() : array
+    public static function simpleDataProvider() : array
     {
         return [
             [
@@ -178,20 +187,7 @@ final class FragmentTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider simpleDataProvider
-     * @param \Infinityloop\Utils\Json $request
-     * @param \Infinityloop\Utils\Json $expected
-     */
-    public function testSimple(Json $request, Json $expected) : void
-    {
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema());
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
-
-        self::assertSame($expected->toString(), $result->toString());
-    }
-
-    public function fieldSelectionMergingDataProvider() : array
+    public static function fieldSelectionMergingDataProvider() : array
     {
         return [
             [
@@ -232,45 +228,32 @@ final class FragmentTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider fieldSelectionMergingDataProvider
-     * @param \Infinityloop\Utils\Json $request
-     * @param \Infinityloop\Utils\Json $expected
-     */
-    public function testFieldSelectionMerging(Json $request, Json $expected) : void
-    {
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema());
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
-
-        self::assertSame($expected->toString(), $result->toString());
-    }
-
-    public function invalidDataProvider() : array
+    public static function invalidDataProvider() : array
     {
         return [
             [
                 Json::fromNative((object) [
                     'query' => 'query { ...namedFragment }',
                 ]),
-                \Graphpinator\Normalizer\Exception\UnknownFragment::class,
+                UnknownFragment::class,
             ],
             [
                 Json::fromNative((object) [
                     'query' => 'query { ...namedFragment } fragment namedFragment on Query { ...secondFragment }',
                 ]),
-                \Graphpinator\Normalizer\Exception\UnknownFragment::class,
+                UnknownFragment::class,
             ],
             [
                 Json::fromNative((object) [
                     'query' => 'query { ... on TestInterface { __typename } }',
                 ]),
-                \Graphpinator\Normalizer\Exception\InvalidFragmentType::class,
+                InvalidFragmentType::class,
             ],
             [
                 Json::fromNative((object) [
                     'query' => 'query { ... namedFragment } fragment namedFragment on TestInterface { __typename }',
                 ]),
-                \Graphpinator\Normalizer\Exception\InvalidFragmentType::class,
+                InvalidFragmentType::class,
             ],
             [
                 Json::fromNative((object) [
@@ -283,7 +266,7 @@ final class FragmentTest extends \PHPUnit\Framework\TestCase
                         ...namedFragment 
                     }',
                 ]),
-                \Graphpinator\Normalizer\Exception\FragmentCycle::class,
+                FragmentCycle::class,
             ],
             [
                 Json::fromNative((object) [
@@ -291,7 +274,7 @@ final class FragmentTest extends \PHPUnit\Framework\TestCase
                     fieldXyz { name: __typename ... on Xyz { name } } 
                     } } }',
                 ]),
-                \Graphpinator\Normalizer\Exception\ConflictingFieldAlias::class,
+                ConflictingFieldAlias::class,
             ],
             [
                 Json::fromNative((object) [
@@ -299,7 +282,7 @@ final class FragmentTest extends \PHPUnit\Framework\TestCase
                     fieldXyz { typename: __typename ... on Xyz { typename: name } } 
                     } } }',
                 ]),
-                \Graphpinator\Normalizer\Exception\ConflictingFieldAlias::class,
+                ConflictingFieldAlias::class,
             ],
             [
                 Json::fromNative((object) [
@@ -307,7 +290,7 @@ final class FragmentTest extends \PHPUnit\Framework\TestCase
                     fieldXyz(arg1: 456) { name } ... on Abc { fieldXyz(arg1: 123) { name } } 
                     } } }',
                 ]),
-                \Graphpinator\Normalizer\Exception\ConflictingFieldArguments::class,
+                ConflictingFieldArguments::class,
             ],
             [
                 Json::fromNative((object) [
@@ -315,21 +298,35 @@ final class FragmentTest extends \PHPUnit\Framework\TestCase
                     fieldXyz(arg1: 456) { name } ... on Abc { fieldXyz { name } } 
                     } } }',
                 ]),
-                \Graphpinator\Normalizer\Exception\ConflictingFieldArguments::class,
+                ConflictingFieldArguments::class,
             ],
         ];
     }
 
-    /**
-     * @dataProvider invalidDataProvider
-     * @param \Infinityloop\Utils\Json $request
-     * @param string $exception
-     */
+    #[DataProvider('simpleDataProvider')]
+    public function testSimple(Json $request, Json $expected) : void
+    {
+        $graphpinator = new Graphpinator(TestSchema::getSchema());
+        $result = $graphpinator->run(new JsonRequestFactory($request));
+
+        self::assertSame($expected->toString(), $result->toString());
+    }
+
+    #[DataProvider('fieldSelectionMergingDataProvider')]
+    public function testFieldSelectionMerging(Json $request, Json $expected) : void
+    {
+        $graphpinator = new Graphpinator(TestSchema::getSchema());
+        $result = $graphpinator->run(new JsonRequestFactory($request));
+
+        self::assertSame($expected->toString(), $result->toString());
+    }
+
+    #[DataProvider('invalidDataProvider')]
     public function testInvalid(Json $request, string $exception) : void
     {
         $this->expectException($exception);
 
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema());
-        $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator = new Graphpinator(TestSchema::getSchema());
+        $graphpinator->run(new JsonRequestFactory($request));
     }
 }

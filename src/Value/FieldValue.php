@@ -4,40 +4,27 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Value;
 
-final class FieldValue implements \JsonSerializable
-{
-    use \Nette\SmartObject;
+use Graphpinator\Typesystem\Field\Field;
+use Graphpinator\Typesystem\Location\FieldDefinitionLocation;
+use Graphpinator\Value\Contract\OutputValue;
 
+final readonly class FieldValue implements \JsonSerializable
+{
     public function __construct(
-        private \Graphpinator\Typesystem\Field\Field $field,
-        private \Graphpinator\Value\ResolvedValue $value,
-        private \Graphpinator\Value\ResolvedValue $intermediateValue,
+        public Field $field,
+        public OutputValue $value,
     )
     {
-        foreach ($field->getDirectiveUsages() as $directive) {
-            $directiveDef = $directive->getDirective();
-            \assert($directiveDef instanceof \Graphpinator\Typesystem\Location\FieldDefinitionLocation);
-            $directiveDef->resolveFieldDefinitionValue($directive->getArgumentValues(), $this);
+        foreach ($field->getDirectiveUsages() as $directiveUsage) {
+            $directive = $directiveUsage->getDirective();
+            \assert($directive instanceof FieldDefinitionLocation);
+            $directive->resolveFieldDefinitionValue($directiveUsage->getArgumentValues(), $this);
         }
     }
 
-    public function jsonSerialize() : \Graphpinator\Value\ResolvedValue
+    #[\Override]
+    public function jsonSerialize() : OutputValue
     {
         return $this->value;
-    }
-
-    public function getField() : \Graphpinator\Typesystem\Field\Field
-    {
-        return $this->field;
-    }
-
-    public function getValue() : \Graphpinator\Value\ResolvedValue
-    {
-        return $this->value;
-    }
-
-    public function getIntermediateValue() : \Graphpinator\Value\ResolvedValue
-    {
-        return $this->intermediateValue;
     }
 }

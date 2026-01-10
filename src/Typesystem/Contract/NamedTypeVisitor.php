@@ -4,17 +4,34 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Contract;
 
-interface NamedTypeVisitor
+use Graphpinator\Typesystem\EnumType;
+use Graphpinator\Typesystem\InputType;
+use Graphpinator\Typesystem\ScalarType;
+use Graphpinator\Typesystem\Type;
+
+/**
+ * @template T
+ * @template-extends AbstractTypeVisitor<T>
+ */
+interface NamedTypeVisitor extends AbstractTypeVisitor
 {
-    public function visitType(\Graphpinator\Typesystem\Type $type) : mixed;
+    /**
+     * @return T
+     */
+    public function visitType(Type $type) : mixed;
 
-    public function visitInterface(\Graphpinator\Typesystem\InterfaceType $interface) : mixed;
+    /**
+     * @return T
+     */
+    public function visitInput(InputType $input) : mixed;
 
-    public function visitUnion(\Graphpinator\Typesystem\UnionType $union) : mixed;
+    /**
+     * @return T
+     */
+    public function visitScalar(ScalarType $scalar) : mixed;
 
-    public function visitInput(\Graphpinator\Typesystem\InputType $input) : mixed;
-
-    public function visitScalar(\Graphpinator\Typesystem\ScalarType $scalar) : mixed;
-
-    public function visitEnum(\Graphpinator\Typesystem\EnumType $enum) : mixed;
+    /**
+     * @return T
+     */
+    public function visitEnum(EnumType $enum) : mixed;
 }

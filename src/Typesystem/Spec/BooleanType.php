@@ -4,13 +4,28 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Spec;
 
-final class BooleanType extends \Graphpinator\Typesystem\ScalarType
+use Graphpinator\Typesystem\Attribute\Description;
+use Graphpinator\Typesystem\ScalarType;
+
+/**
+ * @extends ScalarType<bool>
+ */
+#[Description('Boolean built-in type')]
+final class BooleanType extends ScalarType
 {
     protected const NAME = 'Boolean';
-    protected const DESCRIPTION = 'Boolean built-in type.';
 
-    public function validateNonNullValue(mixed $rawValue) : bool
+    #[\Override]
+    public function validateAndCoerceInput(mixed $rawValue) : ?bool
     {
-        return \is_bool($rawValue);
+        return \is_bool($rawValue)
+            ? $rawValue
+            : null;
+    }
+
+    #[\Override]
+    public function coerceOutput(mixed $rawValue) : bool
+    {
+        return $rawValue;
     }
 }

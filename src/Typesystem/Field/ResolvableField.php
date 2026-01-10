@@ -4,17 +4,24 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Field;
 
-final class ResolvableField extends \Graphpinator\Typesystem\Field\Field
+use Graphpinator\Typesystem\Contract\Type;
+
+class ResolvableField extends Field
 {
     private \Closure $resolveFn;
 
-    public function __construct(string $name, \Graphpinator\Typesystem\Contract\Outputable $type, callable $resolveFn)
+    public function __construct(
+        string $name,
+        Type $type,
+        callable $resolveFn,
+    )
     {
         parent::__construct($name, $type);
         $this->resolveFn = $resolveFn;
     }
 
-    public static function create(string $name, \Graphpinator\Typesystem\Contract\Outputable $type, ?callable $resolveFn = null) : self
+    #[\Override]
+    public static function create(string $name, Type $type, ?callable $resolveFn = null) : self
     {
         return new self($name, $type, $resolveFn);
     }

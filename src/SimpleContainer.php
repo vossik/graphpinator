@@ -4,10 +4,24 @@ declare(strict_types = 1);
 
 namespace Graphpinator;
 
+use Graphpinator\Typesystem\Container;
+use Graphpinator\Typesystem\Contract\NamedType;
+use Graphpinator\Typesystem\Directive as TypesystemDirective;
+use Graphpinator\Typesystem\Exception\DirectiveNamesNotUnique;
+use Graphpinator\Typesystem\Exception\TypeNamesNotUnique;
+use Graphpinator\Typesystem\Introspection\Directive;
+use Graphpinator\Typesystem\Introspection\DirectiveLocation;
+use Graphpinator\Typesystem\Introspection\EnumValue;
+use Graphpinator\Typesystem\Introspection\Field;
+use Graphpinator\Typesystem\Introspection\InputValue;
+use Graphpinator\Typesystem\Introspection\Schema;
+use Graphpinator\Typesystem\Introspection\Type;
+use Graphpinator\Typesystem\Introspection\TypeKind;
+
 /**
  * Simple Container implementation
  */
-class SimpleContainer extends \Graphpinator\Typesystem\Container
+class SimpleContainer extends Container
 {
     protected array $types = [];
     protected array $directives = [];
@@ -15,12 +29,13 @@ class SimpleContainer extends \Graphpinator\Typesystem\Container
     protected array $combinedDirectives = [];
 
     /**
-     * @phpcs:ignore SlevomatCodingStandard.TypeHints.DisallowArrayTypeHintSyntax.DisallowedArrayTypeHintSyntax
-     * @param \Graphpinator\Typesystem\Contract\NamedType[] $types
-     * @phpcs:ignore SlevomatCodingStandard.TypeHints.DisallowArrayTypeHintSyntax.DisallowedArrayTypeHintSyntax
-     * @param \Graphpinator\Typesystem\Directive[] $directives
+     * @param iterable<NamedType> $types
+     * @param iterable<Directive> $directives
      */
-    public function __construct(array $types, array $directives)
+    public function __construct(
+        iterable $types,
+        iterable $directives,
+    )
     {
         self::$builtInTypes = [
             'ID' => self::ID(),
@@ -28,40 +43,57 @@ class SimpleContainer extends \Graphpinator\Typesystem\Container
             'Float' => self::Float(),
             'String' => self::String(),
             'Boolean' => self::Boolean(),
-            '__Schema' => new \Graphpinator\Introspection\Schema($this),
-            '__Type' => new \Graphpinator\Introspection\Type($this),
-            '__TypeKind' => new \Graphpinator\Introspection\TypeKind(),
-            '__Field' => new \Graphpinator\Introspection\Field($this),
-            '__EnumValue' => new \Graphpinator\Introspection\EnumValue(),
-            '__InputValue' => new \Graphpinator\Introspection\InputValue($this),
-            '__Directive' => new \Graphpinator\Introspection\Directive($this),
-            '__DirectiveLocation' => new \Graphpinator\Introspection\DirectiveLocation(),
+            '__Schema' => new Schema($this),
+            '__Type' => new Type($this),
+            '__TypeKind' => new TypeKind(),
+            '__Field' => new Field($this),
+            '__EnumValue' => new EnumValue(),
+            '__InputValue' => new InputValue($this),
+            '__Directive' => new Directive($this),
+            '__DirectiveLocation' => new DirectiveLocation(),
         ];
         self::$builtInDirectives = [
             'skip' => self::directiveSkip(),
             'include' => self::directiveInclude(),
             'deprecated' => self::directiveDeprecated(),
             'specifiedBy' => self::directiveSpecifiedBy(),
+            'oneOf' => self::directiveOneOf(),
         ];
+
+        $typeCount = 0;
 
         foreach ($types as $type) {
             $this->types[$type->getName()] = $type;
+            ++$typeCount;
         }
+
+        if (Graphpinator::$validateSchema && $typeCount !== \count($this->types)) {
+            throw new TypeNamesNotUnique();
+        }
+
+        $directivesCount = 0;
 
         foreach ($directives as $directive) {
             $this->directives[$directive->getName()] = $directive;
+            ++$directivesCount;
+        }
+
+        if (Graphpinator::$validateSchema && $directivesCount !== \count($this->directives)) {
+            throw new DirectiveNamesNotUnique();
         }
 
         $this->combinedTypes = \array_merge($this->types, self::$builtInTypes);
         $this->combinedDirectives = \array_merge($this->directives, self::$builtInDirectives);
     }
 
-    public function getType(string $name) : ?\Graphpinator\Typesystem\Contract\NamedType
+    #[\Override]
+    public function getType(string $name) : ?NamedType
     {
         return $this->combinedTypes[$name]
             ?? null;
     }
 
+    #[\Override]
     public function getTypes(bool $includeBuiltIn = false) : array
     {
         return $includeBuiltIn
@@ -69,12 +101,14 @@ class SimpleContainer extends \Graphpinator\Typesystem\Container
             : $this->types;
     }
 
-    public function getDirective(string $name) : ?\Graphpinator\Typesystem\Directive
+    #[\Override]
+    public function getDirective(string $name) : ?TypesystemDirective
     {
         return $this->combinedDirectives[$name]
             ?? null;
     }
 
+    #[\Override]
     public function getDirectives(bool $includeBuiltIn = false) : array
     {
         return $includeBuiltIn

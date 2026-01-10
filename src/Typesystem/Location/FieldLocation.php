@@ -4,27 +4,16 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Location;
 
-interface FieldLocation extends \Graphpinator\Typesystem\Contract\ExecutableDirective
+use Graphpinator\Typesystem\Contract\ExecutableDirective;
+use Graphpinator\Typesystem\Field\Field;
+use Graphpinator\Value\ArgumentValueSet;
+use Graphpinator\Value\FieldValue;
+
+interface FieldLocation extends ExecutableDirective
 {
-    public const NONE = 'none';
-    public const SKIP = 'skip';
+    public function validateFieldUsage(Field $field, ArgumentValueSet $arguments) : bool;
 
-    public const ENUM = [
-        self::NONE => self::NONE,
-        self::SKIP => self::SKIP,
-    ];
+    public function resolveFieldBefore(ArgumentValueSet $arguments) : SelectionDirectiveResult;
 
-    public function validateFieldUsage(
-        \Graphpinator\Typesystem\Field\Field $field,
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : bool;
-
-    public function resolveFieldBefore(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : string;
-
-    public function resolveFieldAfter(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-        \Graphpinator\Value\FieldValue $fieldValue,
-    ) : string;
+    public function resolveFieldAfter(ArgumentValueSet $arguments, FieldValue $fieldValue) : SelectionDirectiveResult;
 }

@@ -4,66 +4,41 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Contract;
 
-abstract class NamedType implements \Graphpinator\Typesystem\Contract\Type, \Graphpinator\Typesystem\Contract\Entity
+use Graphpinator\Typesystem\ListType;
+use Graphpinator\Typesystem\NotNullType;
+use Graphpinator\Typesystem\Utils\THasDescription;
+
+abstract class NamedType implements Type, Entity
 {
+    use THasDescription;
+
     protected const NAME = '';
-    protected const DESCRIPTION = null;
 
-    abstract public function isInstanceOf(\Graphpinator\Typesystem\Contract\Type $type) : bool;
-
-    abstract public function accept(\Graphpinator\Typesystem\Contract\NamedTypeVisitor $visitor) : mixed;
+    /**
+     * @template T of mixed
+     * @param NamedTypeVisitor<T> $visitor
+     * @return T
+     */
+    #[\Override]
+    abstract public function accept(NamedTypeVisitor $visitor) : mixed;
 
     final public function getName() : string
     {
         return static::NAME;
     }
 
-    final public function printName() : string
+    final public function notNull() : NotNullType
     {
-        return $this->getName();
+        return new NotNullType($this);
     }
 
-    final public function getDescription() : ?string
+    final public function notNullList() : NotNullType
     {
-        $attrs = (new \ReflectionClass(static::class))->getAttributes(\Graphpinator\Typesystem\Attribute\Description::class);
-
-        if (\count($attrs) === 1) {
-            $attr = $attrs[0]->newInstance();
-            \assert($attr instanceof \Graphpinator\Typesystem\Attribute\Description);
-
-            return $attr->getValue();
-        }
-
-        return static::DESCRIPTION;
+        return new NotNullType(new ListType(new NotNullType($this)));
     }
 
-    final public function getNamedType() : \Graphpinator\Typesystem\Contract\NamedType
+    final public function list() : ListType
     {
-        return $this;
-    }
-
-    final public function getShapingType() : \Graphpinator\Typesystem\Contract\Type
-    {
-        return $this;
-    }
-
-    final public function isInputable() : bool
-    {
-        return $this instanceof Inputable;
-    }
-
-    final public function notNull() : \Graphpinator\Typesystem\NotNullType
-    {
-        return new \Graphpinator\Typesystem\NotNullType($this);
-    }
-
-    final public function notNullList() : \Graphpinator\Typesystem\NotNullType
-    {
-        return new \Graphpinator\Typesystem\NotNullType(new \Graphpinator\Typesystem\ListType(new \Graphpinator\Typesystem\NotNullType($this)));
-    }
-
-    final public function list() : \Graphpinator\Typesystem\ListType
-    {
-        return new \Graphpinator\Typesystem\ListType($this);
+        return new ListType($this);
     }
 }

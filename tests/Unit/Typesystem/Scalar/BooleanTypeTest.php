@@ -4,9 +4,16 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Tests\Unit\Typesystem\Scalar;
 
-final class BooleanTypeTest extends \PHPUnit\Framework\TestCase
+use Graphpinator\Common\Path;
+use Graphpinator\Typesystem\Spec\BooleanType;
+use Graphpinator\Value\Exception\InvalidValue;
+use Graphpinator\Value\Visitor\ConvertRawValueVisitor;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+final class BooleanTypeTest extends TestCase
 {
-    public function simpleDataProvider() : array
+    public static function simpleDataProvider() : array
     {
         return [
             [true],
@@ -15,7 +22,7 @@ final class BooleanTypeTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    public function invalidDataProvider() : array
+    public static function invalidDataProvider() : array
     {
         return [
             [123],
@@ -25,28 +32,22 @@ final class BooleanTypeTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider simpleDataProvider
-     * @param bool|null $rawValue
-     */
+    #[DataProvider('simpleDataProvider')]
     public function testValidateValue($rawValue) : void
     {
-        $bool = new \Graphpinator\Typesystem\Spec\BooleanType();
-        $value = $bool->accept(new \Graphpinator\Value\ConvertRawValueVisitor($rawValue, new \Graphpinator\Common\Path()));
+        $bool = new BooleanType();
+        $value = $bool->accept(new ConvertRawValueVisitor($rawValue, new Path()));
 
         self::assertSame($bool, $value->getType());
         self::assertSame($rawValue, $value->getRawValue());
     }
 
-    /**
-     * @dataProvider invalidDataProvider
-     * @param int|float|string|array $rawValue
-     */
+    #[DataProvider('invalidDataProvider')]
     public function testValidateValueInvalid($rawValue) : void
     {
-        $this->expectException(\Graphpinator\Exception\Value\InvalidValue::class);
+        $this->expectException(InvalidValue::class);
 
-        $bool = new \Graphpinator\Typesystem\Spec\BooleanType();
-        $bool->accept(new \Graphpinator\Value\ConvertRawValueVisitor($rawValue, new \Graphpinator\Common\Path()));
+        $bool = new BooleanType();
+        $bool->accept(new ConvertRawValueVisitor($rawValue, new Path()));
     }
 }

@@ -4,24 +4,36 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Argument;
 
-final class Argument implements \Graphpinator\Typesystem\Contract\Component
-{
-    use \Nette\SmartObject;
-    use \Graphpinator\Typesystem\Utils\TOptionalDescription;
-    use \Graphpinator\Typesystem\Utils\THasDirectives;
-    use \Graphpinator\Typesystem\Utils\TDeprecatable;
+use Graphpinator\Common\Path;
+use Graphpinator\Typesystem\Contract\Component;
+use Graphpinator\Typesystem\Contract\ComponentVisitor;
+use Graphpinator\Typesystem\Contract\Type;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet;
+use Graphpinator\Typesystem\Location\ArgumentDefinitionLocation;
+use Graphpinator\Typesystem\Utils\TDeprecatable;
+use Graphpinator\Typesystem\Utils\THasDirectives;
+use Graphpinator\Typesystem\Utils\TOptionalDescription;
+use Graphpinator\Value\ArgumentValue;
+use Graphpinator\Value\Visitor\ConvertRawValueVisitor;
 
-    private ?\Graphpinator\Value\ArgumentValue $defaultValue = null;
+final class Argument implements Component
+{
+    use TOptionalDescription;
+    use THasDirectives;
+    use TDeprecatable;
+
+    private ?ArgumentValue $defaultValue = null;
 
     public function __construct(
         private string $name,
-        private \Graphpinator\Typesystem\Contract\Inputable $type,
+        private Type $type,
     )
     {
-        $this->directiveUsages = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet();
+        $this->directiveUsages = new DirectiveUsageSet();
     }
 
-    public static function create(string $name, \Graphpinator\Typesystem\Contract\Inputable $type) : self
+    public static function create(string $name, Type $type) : self
     {
         return new self($name, $type);
     }
@@ -31,44 +43,41 @@ final class Argument implements \Graphpinator\Typesystem\Contract\Component
         return $this->name;
     }
 
-    public function getType() : \Graphpinator\Typesystem\Contract\Inputable
+    public function getType() : Type
     {
         return $this->type;
     }
 
-    public function getDefaultValue() : ?\Graphpinator\Value\ArgumentValue
+    public function getDefaultValue() : ?ArgumentValue
     {
         return $this->defaultValue;
     }
 
-    public function setDefaultValue(\stdClass|array|string|int|float|bool|null $defaultValue) : self
+    public function setDefaultValue(mixed $defaultValue) : self
     {
-        $this->defaultValue = new \Graphpinator\Value\ArgumentValue(
+        $this->defaultValue = new ArgumentValue(
             $this,
-            $this->getType()->accept(new \Graphpinator\Value\ConvertRawValueVisitor($defaultValue, new \Graphpinator\Common\Path())),
+            $this->getType()->accept(new ConvertRawValueVisitor($defaultValue, new Path())),
             false,
         );
 
         return $this;
     }
 
-    public function accept(\Graphpinator\Typesystem\Contract\ComponentVisitor $visitor) : mixed
+    #[\Override]
+    public function accept(ComponentVisitor $visitor) : mixed
     {
         return $visitor->visitArgument($this);
     }
 
-    public function addDirective(
-        \Graphpinator\Typesystem\Location\ArgumentDefinitionLocation $directive,
-        array $arguments = [],
-    ) : self
+    /**
+     * @param ArgumentDefinitionLocation $directive
+     * @phpcs:ignore
+     * @param array<string, mixed> $arguments
+     */
+    public function addDirective(ArgumentDefinitionLocation $directive, array $arguments = []) : self
     {
-        $usage = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage($directive, $arguments);
-
-        if (\Graphpinator\Graphpinator::$validateSchema && !$directive->validateArgumentUsage($this, $usage->getArgumentValues())) {
-            throw new \Graphpinator\Typesystem\Exception\DirectiveIncorrectType();
-        }
-
-        $this->directiveUsages[] = $usage;
+        $this->directiveUsages[] = new DirectiveUsage($directive, $arguments);
 
         return $this;
     }

@@ -4,48 +4,54 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Request;
 
-final class JsonRequestFactory implements \Graphpinator\Request\RequestFactory
-{
-    use \Nette\SmartObject;
+use Graphpinator\Request\Exception\OperationNameNotString;
+use Graphpinator\Request\Exception\QueryMissing;
+use Graphpinator\Request\Exception\QueryNotString;
+use Graphpinator\Request\Exception\UnknownKey;
+use Graphpinator\Request\Exception\VariablesNotObject;
+use Infinityloop\Utils\Json;
 
+final readonly class JsonRequestFactory implements RequestFactory
+{
     public const QUERY = 'query';
     public const VARIABLES = 'variables';
     public const OPERATION_NAME = 'operationName';
 
     public function __construct(
-        private \Infinityloop\Utils\Json\JsonContract $json,
-        private bool $strict = true,
+        private Json $json,
+        private bool $strict = true, // whether to allow unknown JSON keys in request, enable this to pass additional data in request, e.g. request ID
     )
     {
     }
 
     public static function fromString(string $json, bool $strict = true) : self
     {
-        return new self(\Infinityloop\Utils\Json\MapJson::fromString($json), $strict);
+        return new self(Json::fromString($json), $strict);
     }
 
+    #[\Override]
     public function create() : Request
     {
         if (!isset($this->json[self::QUERY])) {
-            throw new \Graphpinator\Request\Exception\QueryMissing();
+            throw new QueryMissing();
         }
 
         if (!\is_string($this->json[self::QUERY])) {
-            throw new \Graphpinator\Request\Exception\QueryNotString();
+            throw new QueryNotString();
         }
 
         if (isset($this->json[self::VARIABLES]) && !$this->json[self::VARIABLES] instanceof \stdClass) {
-            throw new \Graphpinator\Request\Exception\VariablesNotObject();
+            throw new VariablesNotObject();
         }
 
         if (isset($this->json[self::OPERATION_NAME]) && !\is_string($this->json[self::OPERATION_NAME])) {
-            throw new \Graphpinator\Request\Exception\OperationNameNotString();
+            throw new OperationNameNotString();
         }
 
         if ($this->strict) {
             foreach ($this->json as $key => $value) {
                 if (!\in_array($key, [self::QUERY, self::VARIABLES, self::OPERATION_NAME], true)) {
-                    throw new \Graphpinator\Request\Exception\UnknownKey();
+                    throw new UnknownKey();
                 }
             }
         }
@@ -56,6 +62,6 @@ final class JsonRequestFactory implements \Graphpinator\Request\RequestFactory
         $operationName = $this->json[self::OPERATION_NAME]
             ?? null;
 
-        return new \Graphpinator\Request\Request($query, $variables, $operationName);
+        return new Request($query, $variables, $operationName);
     }
 }

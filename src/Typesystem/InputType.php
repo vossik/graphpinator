@@ -4,40 +4,47 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem;
 
-abstract class InputType extends \Graphpinator\Typesystem\Contract\ConcreteType implements
-    \Graphpinator\Typesystem\Contract\Inputable
+use Graphpinator\Typesystem\Argument\ArgumentSet;
+use Graphpinator\Typesystem\Contract\NamedType;
+use Graphpinator\Typesystem\Contract\NamedTypeVisitor;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet;
+use Graphpinator\Typesystem\Exception\ArgumentDefaultValueCycleDetected;
+use Graphpinator\Typesystem\Location\InputObjectLocation;
+use Graphpinator\Typesystem\Spec\OneOfDirective;
+use Graphpinator\Typesystem\Utils\THasDirectives;
+
+abstract class InputType extends NamedType
 {
-    use \Graphpinator\Typesystem\Utils\THasDirectives;
+    use THasDirectives;
 
     protected const DATA_CLASS = \stdClass::class;
 
-    protected ?\Graphpinator\Typesystem\Argument\ArgumentSet $arguments = null;
-    private bool $cycleValidated = false;
+    protected ?ArgumentSet $arguments = null;
+    private bool $isLoadingArguments = false;
 
     public function __construct()
     {
-        $this->directiveUsages = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet();
+        $this->directiveUsages = new DirectiveUsageSet();
     }
 
-    final public function getArguments() : \Graphpinator\Typesystem\Argument\ArgumentSet
+    final public function getArguments() : ArgumentSet
     {
-        if (!$this->arguments instanceof \Graphpinator\Typesystem\Argument\ArgumentSet) {
+        if (!$this->arguments instanceof ArgumentSet) {
+            if ($this->isLoadingArguments) {
+                throw new ArgumentDefaultValueCycleDetected($this->getName());
+            }
+
+            $this->isLoadingArguments = true;
             $this->arguments = $this->getFieldDefinition();
             $this->afterGetFieldDefinition();
-
-            if (\Graphpinator\Graphpinator::$validateSchema) {
-                if ($this->arguments->count() === 0) {
-                    throw new \Graphpinator\Typesystem\Exception\InputTypeMustDefineOneOreMoreFields();
-                }
-
-                $this->validateCycles([]);
-            }
         }
 
         return $this->arguments;
     }
 
-    final public function accept(\Graphpinator\Typesystem\Contract\NamedTypeVisitor $visitor) : mixed
+    #[\Override]
+    final public function accept(NamedTypeVisitor $visitor) : mixed
     {
         return $visitor->visitInput($this);
     }
@@ -47,23 +54,30 @@ abstract class InputType extends \Graphpinator\Typesystem\Contract\ConcreteType 
         return static::DATA_CLASS;
     }
 
-    final public function addDirective(
-        \Graphpinator\Typesystem\Location\InputObjectLocation $directive,
-        array $arguments = [],
-    ) : static
+    /**
+     * @param InputObjectLocation $directive
+     * @phpcs:ignore
+     * @param array<string, mixed> $arguments
+     */
+    final public function addDirective(InputObjectLocation $directive, array $arguments = []) : static
     {
-        $usage = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage($directive, $arguments);
-
-        if (\Graphpinator\Graphpinator::$validateSchema && !$directive->validateInputUsage($this, $usage->getArgumentValues())) {
-            throw new \Graphpinator\Typesystem\Exception\DirectiveIncorrectType();
-        }
-
-        $this->directiveUsages[] = $usage;
+        $this->directiveUsages[] = new DirectiveUsage($directive, $arguments);
 
         return $this;
     }
 
-    abstract protected function getFieldDefinition() : \Graphpinator\Typesystem\Argument\ArgumentSet;
+    public function isOneOf() : bool
+    {
+        foreach ($this->getDirectiveUsages() as $directive) {
+            if ($directive->getDirective() instanceof OneOfDirective) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    abstract protected function getFieldDefinition() : ArgumentSet;
 
     /**
      * This function serves to prevent infinite cycles.
@@ -72,41 +86,5 @@ abstract class InputType extends \Graphpinator\Typesystem\Contract\ConcreteType 
      */
     protected function afterGetFieldDefinition() : void
     {
-    }
-
-    private function validateCycles(array $stack) : void
-    {
-        if ($this->cycleValidated) {
-            return;
-        }
-
-        if (\array_key_exists($this->getName(), $stack)) {
-            throw new \Graphpinator\Typesystem\Exception\InputCycle();
-        }
-
-        $stack[$this->getName()] = true;
-
-        foreach ($this->arguments as $argumentContract) {
-            $type = $argumentContract->getType();
-
-            if (!$type instanceof NotNullType) {
-                continue;
-            }
-
-            $type = $type->getInnerType();
-
-            if (!$type instanceof self) {
-                continue;
-            }
-
-            if ($type->arguments === null) {
-                $type->arguments = $type->getFieldDefinition();
-            }
-
-            $type->validateCycles($stack);
-        }
-
-        unset($stack[$this->getName()]);
-        $this->cycleValidated = true;
     }
 }

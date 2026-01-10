@@ -4,84 +4,84 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem;
 
-final class Schema implements \Graphpinator\Typesystem\Contract\Entity
+use Graphpinator\Typesystem\Argument\Argument;
+use Graphpinator\Typesystem\Argument\ArgumentSet;
+use Graphpinator\Typesystem\Contract\Entity;
+use Graphpinator\Typesystem\Contract\EntityVisitor;
+use Graphpinator\Typesystem\Contract\Type as TypeContract;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet;
+use Graphpinator\Typesystem\Field\ResolvableField;
+use Graphpinator\Typesystem\Location\SchemaLocation;
+use Graphpinator\Typesystem\Utils\THasDirectives;
+use Graphpinator\Typesystem\Utils\TOptionalDescription;
+
+class Schema implements Entity
 {
-    use \Nette\SmartObject;
-    use \Graphpinator\Typesystem\Utils\TOptionalDescription;
-    use \Graphpinator\Typesystem\Utils\THasDirectives;
+    use TOptionalDescription;
+    use THasDirectives;
 
     public function __construct(
-        private \Graphpinator\Typesystem\Container $container,
-        private \Graphpinator\Typesystem\Type $query,
-        private ?\Graphpinator\Typesystem\Type $mutation = null,
-        private ?\Graphpinator\Typesystem\Type $subscription = null,
+        private Container $container,
+        private Type $query,
+        private ?Type $mutation = null,
+        private ?Type $subscription = null,
     )
     {
-        if (\Graphpinator\Graphpinator::$validateSchema) {
-            if (self::isSame($query, $mutation) ||
-                self::isSame($query, $subscription) ||
-                self::isSame($mutation, $subscription)) {
-                throw new \Graphpinator\Typesystem\Exception\RootOperationTypesMustBeDifferent();
-            }
-        }
-
-        $this->directiveUsages = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet();
-        $query->addMetaField(\Graphpinator\Typesystem\Field\ResolvableField::create(
+        $this->directiveUsages = new DirectiveUsageSet();
+        $query->addMetaField(ResolvableField::create(
             '__schema',
             $container->getType('__Schema')->notNull(),
-            function() : \Graphpinator\Typesystem\Schema {
+            function() : Schema {
                 return $this;
             },
         ));
-        $query->addMetaField(\Graphpinator\Typesystem\Field\ResolvableField::create(
+        $query->addMetaField(ResolvableField::create(
             '__type',
             $container->getType('__Type'),
-            function($parent, string $name) : ?\Graphpinator\Typesystem\Contract\Type {
+            function($parent, string $name) : ?TypeContract {
                 return $this->container->getType($name);
             },
-        )->setArguments(new \Graphpinator\Typesystem\Argument\ArgumentSet([
-            \Graphpinator\Typesystem\Argument\Argument::create('name', \Graphpinator\Typesystem\Container::String()->notNull()),
+        )->setArguments(new ArgumentSet([
+            Argument::create('name', Container::String()->notNull()),
         ])));
     }
 
-    public function getContainer() : \Graphpinator\Typesystem\Container
+    final public function getContainer() : Container
     {
         return $this->container;
     }
 
-    public function getQuery() : \Graphpinator\Typesystem\Type
+    final public function getQuery() : Type
     {
         return $this->query;
     }
 
-    public function getMutation() : ?\Graphpinator\Typesystem\Type
+    final public function getMutation() : ?Type
     {
         return $this->mutation;
     }
 
-    public function getSubscription() : ?\Graphpinator\Typesystem\Type
+    final public function getSubscription() : ?Type
     {
         return $this->subscription;
     }
 
-    public function accept(\Graphpinator\Typesystem\Contract\EntityVisitor $visitor) : mixed
+    #[\Override]
+    final public function accept(EntityVisitor $visitor) : mixed
     {
         return $visitor->visitSchema($this);
     }
 
-    public function addDirective(
-        \Graphpinator\Typesystem\Location\SchemaLocation $directive,
-        array $arguments = [],
-    ) : self
+    /**
+     * @param SchemaLocation $directive
+     * @phpcs:ignore
+     * @param array<string, mixed> $arguments
+     */
+    final public function addDirective(SchemaLocation $directive, array $arguments = []) : self
     {
-        $this->directiveUsages[] = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage($directive, $arguments);
+        $this->directiveUsages[] = new DirectiveUsage($directive, $arguments);
 
         return $this;
-    }
-
-    private static function isSame(?\Graphpinator\Typesystem\Type $lhs, ?\Graphpinator\Typesystem\Type $rhs) : bool
-    {
-        return $lhs === $rhs
-            && ($lhs !== null || $rhs !== null);
     }
 }

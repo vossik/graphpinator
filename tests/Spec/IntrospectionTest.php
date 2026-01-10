@@ -4,11 +4,16 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Tests\Spec;
 
-use \Infinityloop\Utils\Json;
+use Graphpinator\Graphpinator;
+use Graphpinator\Request\JsonRequestFactory;
+use Graphpinator\Typesystem\Spec\DeprecatedDirective;
+use Infinityloop\Utils\Json;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
-final class IntrospectionTest extends \PHPUnit\Framework\TestCase
+final class IntrospectionTest extends TestCase
 {
-    public function typenameDataProvider() : array
+    public static function typenameDataProvider() : array
     {
         return [
             [
@@ -26,20 +31,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider typenameDataProvider
-     * @param \Infinityloop\Utils\Json $request
-     * @param \Infinityloop\Utils\Json $expected
-     */
-    public function testTypename(Json $request, Json $expected) : void
-    {
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema());
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
-
-        self::assertSame($expected->toString(), $result->toString());
-    }
-
-    public function schemaDataProvider() : array
+    public static function schemaDataProvider() : array
     {
         return [
             [
@@ -75,10 +67,10 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                         '__schema' => [
                             'types' => [
                                 ['name' => 'Query', 'description' => null],
-                                ['name' => 'Abc', 'description' => 'Test Abc description'],
+                                ['name' => 'Abc', 'description' => null],
                                 ['name' => 'Xyz', 'description' => null],
                                 ['name' => 'Zzz', 'description' => null],
-                                ['name' => 'TestInterface', 'description' => 'TestInterface Description'],
+                                ['name' => 'TestInterface', 'description' => null],
                                 ['name' => 'TestUnion', 'description' => null],
                                 ['name' => 'TestUnionInvalidResolvedType', 'description' => null],
                                 ['name' => 'CompositeInput', 'description' => null],
@@ -91,26 +83,26 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                 ['name' => 'ComplexDefaultsInput', 'description' => null],
                                 ['name' => 'NullFieldResolution', 'description' => null],
                                 ['name' => 'NullListResolution', 'description' => null],
-                                ['name' => 'SimpleType', 'description' => 'Simple desc'],
-                                ['name' => 'InterfaceAbc', 'description' => 'Interface Abc Description'],
-                                ['name' => 'InterfaceEfg', 'description' => 'Interface Efg Description'],
+                                ['name' => 'SimpleType', 'description' => null],
+                                ['name' => 'InterfaceAbc', 'description' => null],
+                                ['name' => 'InterfaceEfg', 'description' => null],
                                 ['name' => 'FragmentTypeA', 'description' => null],
                                 ['name' => 'FragmentTypeB', 'description' => null],
                                 ['name' => 'SimpleEmptyTestInput', 'description' => null],
                                 ['name' => 'InterfaceChildType', 'description' => null],
-                                ['name' => 'ID', 'description' => 'ID built-in type.'],
-                                ['name' => 'Int', 'description' => 'Int built-in type (32 bit).'],
-                                ['name' => 'Float', 'description' => 'Float built-in type.'],
-                                ['name' => 'String', 'description' => 'String built-in type.'],
-                                ['name' => 'Boolean', 'description' => 'Boolean built-in type.'],
-                                ['name' => '__Schema', 'description' => 'Built-in introspection type.'],
-                                ['name' => '__Type', 'description' => 'Built-in introspection type.'],
-                                ['name' => '__TypeKind', 'description' => 'Built-in introspection type.'],
-                                ['name' => '__Field', 'description' => 'Built-in introspection type.'],
-                                ['name' => '__EnumValue', 'description' => 'Built-in introspection type.'],
-                                ['name' => '__InputValue', 'description' => 'Built-in introspection type.'],
-                                ['name' => '__Directive', 'description' => 'Built-in introspection type.'],
-                                ['name' => '__DirectiveLocation', 'description' => 'Built-in introspection type.'],
+                                ['name' => 'ID', 'description' => 'ID built-in type'],
+                                ['name' => 'Int', 'description' => 'Int built-in type (32 bit)'],
+                                ['name' => 'Float', 'description' => 'Float built-in type'],
+                                ['name' => 'String', 'description' => 'String built-in type'],
+                                ['name' => 'Boolean', 'description' => 'Boolean built-in type'],
+                                ['name' => '__Schema', 'description' => 'Built-in introspection type'],
+                                ['name' => '__Type', 'description' => 'Built-in introspection type'],
+                                ['name' => '__TypeKind', 'description' => 'Built-in introspection type'],
+                                ['name' => '__Field', 'description' => 'Built-in introspection type'],
+                                ['name' => '__EnumValue', 'description' => 'Built-in introspection type'],
+                                ['name' => '__InputValue', 'description' => 'Built-in introspection type'],
+                                ['name' => '__Directive', 'description' => 'Built-in introspection type'],
+                                ['name' => '__DirectiveLocation', 'description' => 'Built-in introspection type'],
                             ],
                         ],
                     ],
@@ -132,13 +124,6 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                     'isRepeatable' => true,
                                 ],
                                 [
-                                    'name' => 'invalidDirectiveResult',
-                                    'description' => null,
-                                    'args' => [],
-                                    'locations' => ['FIELD'],
-                                    'isRepeatable' => true,
-                                ],
-                                [
                                     'name' => 'invalidDirectiveType',
                                     'description' => null,
                                     'args' => [],
@@ -147,7 +132,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                 ],
                                 [
                                     'name' => 'skip',
-                                    'description' => 'Built-in skip directive.',
+                                    'description' => 'Built-in skip directive',
                                     'args' => [
                                         ['name' => 'if'],
                                     ],
@@ -156,7 +141,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                 ],
                                 [
                                     'name' => 'include',
-                                    'description' => 'Built-in include directive.',
+                                    'description' => 'Built-in include directive',
                                     'args' => [
                                         ['name' => 'if'],
                                     ],
@@ -165,7 +150,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                 ],
                                 [
                                     'name' => 'deprecated',
-                                    'description' => 'Built-in deprecated directive.',
+                                    'description' => 'Built-in deprecated directive',
                                     'args' => [
                                         ['name' => 'reason'],
                                     ],
@@ -174,11 +159,18 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                 ],
                                 [
                                     'name' => 'specifiedBy',
-                                    'description' => 'Built-in specified by directive.',
+                                    'description' => 'Built-in specifiedBy directive',
                                     'args' => [
                                         ['name' => 'url'],
                                     ],
                                     'locations' => ['SCALAR'],
+                                    'isRepeatable' => false,
+                                ],
+                                [
+                                    'name' => 'oneOf',
+                                    'description' => 'Built-in oneOf directive',
+                                    'args' => [],
+                                    'locations' => ['INPUT_OBJECT'],
                                     'isRepeatable' => false,
                                 ],
                             ],
@@ -189,22 +181,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider schemaDataProvider
-     * @param \Infinityloop\Utils\Json $request
-     * @param \Infinityloop\Utils\Json $expected
-     */
-    public function testSchema(Json $request, Json $expected) : void
-    {
-        $schema = TestSchema::getSchema();
-        $schema->setDescription('Test schema description');
-        $graphpinator = new \Graphpinator\Graphpinator($schema);
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
-
-        self::assertSame($expected->toString(), $result->toString());
-    }
-
-    public function typeDataProvider() : array
+    public static function typeDataProvider() : array
     {
         return [
             [
@@ -231,6 +208,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                 name
                             }
                             specifiedByURL
+                            isOneOf
                         } 
                     }',
                 ]),
@@ -239,7 +217,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                         '__type' => [
                             'kind' => 'OBJECT',
                             'name' => 'Abc',
-                            'description' => 'Test Abc description',
+                            'description' => null,
                             'fields' => [['name' => 'fieldXyz']],
                             'interfaces' => [],
                             'possibleTypes' => null,
@@ -247,6 +225,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             'enumValues' => null,
                             'ofType' => null,
                             'specifiedByURL' => null,
+                            'isOneOf' => null,
                         ],
                     ],
                 ]),
@@ -274,6 +253,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                 name
                             } 
                             specifiedByURL
+                            isOneOf
                         } 
                     }',
                 ]),
@@ -290,6 +270,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             'enumValues' => null,
                             'ofType' => null,
                             'specifiedByURL' => null,
+                            'isOneOf' => null,
                         ],
                     ],
                 ]),
@@ -317,6 +298,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                 name
                             } 
                             specifiedByURL
+                            isOneOf
                         } 
                     }',
                 ]),
@@ -325,7 +307,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                         '__type' => [
                             'kind' => 'INTERFACE',
                             'name' => 'TestInterface',
-                            'description' => 'TestInterface Description',
+                            'description' => null,
                             'fields' => [['name' => 'name']],
                             'interfaces' => [],
                             'possibleTypes' => [['name' => 'Xyz']],
@@ -333,6 +315,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             'enumValues' => null,
                             'ofType' => null,
                             'specifiedByURL' => null,
+                            'isOneOf' => null,
                         ],
                     ],
                 ]),
@@ -349,6 +332,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             enumValues { name }
                             ofType { name }
                             specifiedByURL
+                            isOneOf
                         } 
                     }',
                 ]),
@@ -365,6 +349,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             'enumValues' => null,
                             'ofType' => null,
                             'specifiedByURL' => null,
+                            'isOneOf' => null,
                         ],
                     ],
                 ]),
@@ -381,6 +366,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             enumValues { name }
                             ofType { name }
                             specifiedByURL
+                            isOneOf
                         } 
                     }',
                 ]),
@@ -397,6 +383,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             'enumValues' => null,
                             'ofType' => null,
                             'specifiedByURL' => null,
+                            'isOneOf' => false,
                         ],
                     ],
                 ]),
@@ -413,6 +400,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             enumValues { name description isDeprecated deprecationReason } 
                             ofType { name }
                             specifiedByURL
+                            isOneOf
                         } 
                     }',
                 ]),
@@ -434,6 +422,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             ],
                             'ofType' => null,
                             'specifiedByURL' => null,
+                            'isOneOf' => null,
                         ],
                     ],
                 ]),
@@ -458,7 +447,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                     'name' => 'B',
                                     'description' => null,
                                     'isDeprecated' => true,
-                                    'deprecationReason' => null,
+                                    'deprecationReason' => DeprecatedDirective::DEFAULT_MESSAGE,
                                 ],
                                 [
                                     'name' => 'C',
@@ -578,7 +567,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                                     'name' => 'fieldXyz',
                                     'description' => null,
                                     'isDeprecated' => true,
-                                    'deprecationReason' => null,
+                                    'deprecationReason' => DeprecatedDirective::DEFAULT_MESSAGE,
                                     'type' => ['name' => 'Xyz'],
                                     'args' => [
                                         [
@@ -682,7 +671,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
             ],
             [
                 Json::fromNative((object) [
-                    'query' => '{ __type(name: "TestScalar") { name kind specifiedByURL } }',
+                    'query' => '{ __type(name: "TestScalar") { name kind specifiedByURL isOneOf } }',
                 ]),
                 Json::fromNative((object) [
                     'data' => [
@@ -690,6 +679,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             'name' => 'TestScalar',
                             'kind' => 'SCALAR',
                             'specifiedByURL' => null,
+                            'isOneOf' => null,
                         ],
                     ],
                 ]),
@@ -697,15 +687,31 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider typeDataProvider
-     * @param \Infinityloop\Utils\Json $request
-     * @param \Infinityloop\Utils\Json $expected
-     */
+    #[DataProvider('typenameDataProvider')]
+    public function testTypename(Json $request, Json $expected) : void
+    {
+        $graphpinator = new Graphpinator(TestSchema::getSchema());
+        $result = $graphpinator->run(new JsonRequestFactory($request));
+
+        self::assertSame($expected->toString(), $result->toString());
+    }
+
+    #[DataProvider('schemaDataProvider')]
+    public function testSchema(Json $request, Json $expected) : void
+    {
+        $schema = TestSchema::getSchema();
+        $schema->setDescription('Test schema description');
+        $graphpinator = new Graphpinator($schema);
+        $result = $graphpinator->run(new JsonRequestFactory($request));
+
+        self::assertSame($expected->toString(), $result->toString());
+    }
+
+    #[DataProvider('typeDataProvider')]
     public function testType(Json $request, Json $expected) : void
     {
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema());
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator = new Graphpinator(TestSchema::getSchema());
+        $result = $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertSame($expected->toString(), $result->toString());
     }
@@ -729,7 +735,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                 '__type' => [
                     'kind' => 'OBJECT',
                     'name' => 'Abc',
-                    'description' => 'Test Abc description',
+                    'description' => null,
                     'fields' => [],
                     'interfaces' => [],
                     'possibleTypes' => null,
@@ -739,8 +745,8 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                 ],
             ],
         ]);
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema());
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator = new Graphpinator(TestSchema::getSchema());
+        $result = $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertSame($expected->toString(), $result->toString());
     }
@@ -768,8 +774,8 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                 ],
             ],
         ]);
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema());
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator = new Graphpinator(TestSchema::getSchema());
+        $result = $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertSame($expected->toString(), $result->toString());
     }
@@ -801,8 +807,8 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                 ],
             ],
         ]);
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema());
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator = new Graphpinator(TestSchema::getSchema());
+        $result = $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertSame($expected->toString(), $result->toString());
     }
@@ -828,7 +834,7 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                             'name' => 'B',
                             'description' => null,
                             'isDeprecated' => true,
-                            'deprecationReason' => null,
+                            'deprecationReason' => DeprecatedDirective::DEFAULT_MESSAGE,
                         ],
                         [
                             'name' => 'C',
@@ -846,8 +852,8 @@ final class IntrospectionTest extends \PHPUnit\Framework\TestCase
                 ],
             ],
         ]);
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema());
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator = new Graphpinator(TestSchema::getSchema());
+        $result = $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertSame($expected->toString(), $result->toString());
     }

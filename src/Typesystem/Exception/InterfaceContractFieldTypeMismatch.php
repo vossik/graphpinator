@@ -4,14 +4,16 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Exception;
 
-final class InterfaceContractFieldTypeMismatch extends \Graphpinator\Typesystem\Exception\TypeError
+final class InterfaceContractFieldTypeMismatch extends TypeError
 {
     public const MESSAGE = 'Type "%s" does not satisfy interface "%s" - field "%s" does not have a compatible type.';
 
-    public function __construct(string $childName, string $interfaceName, string $fieldName)
+    public function __construct(
+        string $childName,
+        string $interfaceName,
+        string $fieldName,
+    )
     {
-        $this->messageArgs = [$childName, $interfaceName, $fieldName];
-
-        parent::__construct();
+        parent::__construct([$childName, $interfaceName, $fieldName]);
     }
 }

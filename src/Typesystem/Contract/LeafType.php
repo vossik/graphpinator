@@ -4,9 +4,9 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Contract;
 
-abstract class LeafType extends \Graphpinator\Typesystem\Contract\ConcreteType implements
-    \Graphpinator\Typesystem\Contract\Inputable,
-    \Graphpinator\Typesystem\Contract\Outputable
+/**
+ * Helper interface to identify leaf types on compile time.
+ */
+interface LeafType extends Type
 {
-    abstract public function validateNonNullValue(mixed $rawValue) : bool;
 }

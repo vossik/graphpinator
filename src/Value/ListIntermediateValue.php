@@ -4,23 +4,26 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Value;
 
-final class ListIntermediateValue implements \Graphpinator\Value\ResolvedValue
-{
-    use \Nette\SmartObject;
+use Graphpinator\Typesystem\ListType;
+use Graphpinator\Value\Contract\Value;
 
+final class ListIntermediateValue implements Value
+{
     public function __construct(
-        private \Graphpinator\Typesystem\ListType $type,
+        private ListType $type,
         private iterable $rawValue,
     )
     {
     }
 
+    #[\Override]
     public function getRawValue(bool $forResolvers = false) : iterable
     {
         return $this->rawValue;
     }
 
-    public function getType() : \Graphpinator\Typesystem\ListType
+    #[\Override]
+    public function getType() : ListType
     {
         return $this->type;
     }

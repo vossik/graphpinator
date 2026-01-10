@@ -4,11 +4,23 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Tests\Spec;
 
-use \Infinityloop\Utils\Json;
+use Graphpinator\Graphpinator;
+use Graphpinator\Parser\Exception\DuplicateOperation;
+use Graphpinator\Parser\Exception\EmptyRequest;
+use Graphpinator\Parser\Exception\MissingOperation;
+use Graphpinator\Parser\Exception\UnexpectedEnd;
+use Graphpinator\Request\JsonRequestFactory;
+use Graphpinator\Request\PsrRequestFactory;
+use Graphpinator\Tokenizer\Exception\InvalidEllipsis;
+use Graphpinator\Tokenizer\Exception\MissingVariableName;
+use Infinityloop\Utils\Json;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ServerRequestInterface;
 
-final class ErrorsTest extends \PHPUnit\Framework\TestCase
+final class ErrorsTest extends TestCase
 {
-    public function tokenizerDataProvider() : array
+    public static function tokenizerDataProvider() : array
     {
         return [
             [
@@ -18,7 +30,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                 Json::fromNative((object) [
                     'errors' => [
                         [
-                            'message' => \Graphpinator\Tokenizer\Exception\MissingVariableName::MESSAGE,
+                            'message' => MissingVariableName::MESSAGE,
                             'locations' => [['line' => 1, 'column' => 18]],
                         ],
                     ],
@@ -31,7 +43,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                 Json::fromNative((object) [
                     'errors' => [
                         [
-                            'message' => \Graphpinator\Tokenizer\Exception\InvalidEllipsis::MESSAGE,
+                            'message' => InvalidEllipsis::MESSAGE,
                             'locations' => [['line' => 1, 'column' => 19]],
                         ],
                     ],
@@ -40,7 +52,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    public function parserDataProvider() : array
+    public static function parserDataProvider() : array
     {
         return [
             [
@@ -50,7 +62,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                 Json::fromNative((object) [
                     'errors' => [
                         [
-                            'message' => \Graphpinator\Parser\Exception\EmptyRequest::MESSAGE,
+                            'message' => EmptyRequest::MESSAGE,
                             'locations' => [['line' => 1, 'column' => 1]],
                         ],
                     ],
@@ -63,7 +75,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                 Json::fromNative((object) [
                     'errors' => [
                         [
-                            'message' => \Graphpinator\Parser\Exception\MissingOperation::MESSAGE,
+                            'message' => MissingOperation::MESSAGE,
                             'locations' => [['line' => 1, 'column' => 29]],
                         ],
                     ],
@@ -76,7 +88,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                 Json::fromNative((object) [
                     'errors' => [
                         [
-                            'message' => \Graphpinator\Parser\Exception\UnexpectedEnd::MESSAGE,
+                            'message' => UnexpectedEnd::MESSAGE,
                             'locations' => [['line' => 1, 'column' => 30]],
                         ],
                     ],
@@ -89,7 +101,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                 Json::fromNative((object) [
                     'errors' => [
                         [
-                            'message' => \Graphpinator\Parser\Exception\DuplicateOperation::MESSAGE,
+                            'message' => DuplicateOperation::MESSAGE,
                             'locations' => [['line' => 1, 'column' => 27]],
                         ],
                     ],
@@ -102,7 +114,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                 Json::fromNative((object) [
                     'errors' => [
                         [
-                            'message' => \Graphpinator\Parser\Exception\DuplicateOperation::MESSAGE,
+                            'message' => DuplicateOperation::MESSAGE,
                             'locations' => [['line' => 1, 'column' => 27]],
                         ],
                     ],
@@ -111,101 +123,101 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    public function normalizerDataProvider() : array
+    public static function normalizerDataProvider() : array
     {
         return [
             [
                 Json::fromNative((object) []),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Invalid request - "query" key not found in request body JSON.',
-                ],
+                    'errors' => [[
+                        'message' => 'Invalid request - "query" key not found in request body JSON.',
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
                     'query' => '{ fieldAbc @blaDirective() { fieldXyz { name } } }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Unknown directive "blaDirective".',
-                    'path' => [' <operation>', 'fieldAbc <field>', 'blaDirective <directive>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Unknown directive "blaDirective".',
+                        'path' => ['<shorthand operation>', 'fieldAbc <field>', 'blaDirective <directive>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
                     'query' => '{ fieldAbc { ... on BlaType { fieldXyz { name } } } }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Unknown type "BlaType".',
-                    'path' => [' <operation>', 'fieldAbc <field>', '<inline fragment>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Unknown type "BlaType".',
+                        'path' => ['<shorthand operation>', 'fieldAbc <field>', '<inline fragment>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
                     'query' => '{ fieldAbc { ... on String { fieldXyz { name } } } }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Fragment type condition must be outputable composite type.',
-                    'path' => [' <operation>', 'fieldAbc <field>', '<inline fragment>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Fragment type condition must be outputable composite type.',
+                        'path' => ['<shorthand operation>', 'fieldAbc <field>', '<inline fragment>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
                     'query' => '{ fieldAbc { ... fragmentName } } fragment fragmentName on String { fieldXyz { name } }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Fragment type condition must be outputable composite type.',
-                    'path' => [' <operation>', 'fieldAbc <field>', 'fragmentName <fragment spread>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Fragment type condition must be outputable composite type.',
+                        'path' => ['<shorthand operation>', 'fieldAbc <field>', 'fragmentName <fragment spread>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
                     'query' => '{ fieldAbc { ... on SimpleInput { fieldXyz { name } } } }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Fragment type condition must be outputable composite type.',
-                    'path' => [' <operation>', 'fieldAbc <field>', '<inline fragment>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Fragment type condition must be outputable composite type.',
+                        'path' => ['<shorthand operation>', 'fieldAbc <field>', '<inline fragment>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
                     'query' => '{ fieldAbc { fieldXyz @testDirective(if: true) { name } } }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Unknown argument "if" provided.',
-                    'path' => [' <operation>', 'fieldAbc <field>', 'fieldXyz <field>', 'testDirective <directive>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Unknown argument "if" provided.',
+                        'path' => ['<shorthand operation>', 'fieldAbc <field>', 'fieldXyz <field>', 'testDirective <directive>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
                     'query' => '{ fieldInvalidInput { fieldName fieldNumber fieldBool notDefinedField } }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Unknown field "notDefinedField" requested for type "SimpleType".',
-                    'path' => [' <operation>', 'fieldInvalidInput <field>', 'notDefinedField <field>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Unknown field "notDefinedField" requested for type "SimpleType".',
+                        'path' => ['<shorthand operation>', 'fieldInvalidInput <field>', 'notDefinedField <field>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
@@ -215,12 +227,12 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                     }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Invalid fragment type condition. ("Abc" is not instance of "InterfaceAbc").',
-                    'path' => ['queryName <operation>', 'fieldFragment <field>', 'fragment <fragment spread>', '<inline fragment>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Invalid fragment type condition. ("Abc" is not instance of "InterfaceAbc").',
+                        'path' => ['queryName <operation>', 'fieldFragment <field>', 'fragment <fragment spread>', '<inline fragment>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
@@ -228,12 +240,12 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                     'variables' => (object) [],
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Invalid value resolved for type "Int" - got "123".',
-                    'path' => ['queryName <operation>', 'var1 <variable>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Invalid value resolved for type "Int" - got "123".',
+                        'path' => ['queryName <operation>', 'var1 <variable>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
@@ -241,12 +253,12 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                     'variables' => (object) [],
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Not-null type with null value.',
-                    'path' => ['queryName <operation>', 'var1 <variable>'],
-                ],
+                    'errors' => [[
+                        'message' => 'Not-null type with null value.',
+                        'path' => ['queryName <operation>', 'var1 <variable>'],
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
@@ -258,44 +270,33 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                     }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Server responded with unknown error.',
-                ],
+                    'errors' => [[
+                        'message' => 'Server responded with unknown error.',
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
-                    'query' => '{ fieldUnion @invalidDirectiveResult() { ... on Abc { fieldXyz { name } } } }',
+                    'query' => '{ fieldThrow { fieldXyz { __typename } } }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Server responded with unknown error.',
-                ],
+                    'errors' => [[
+                        'message' => 'Server responded with unknown error.',
                     ],
-                    ]),
+                    ],
+                ]),
             ],
             [
                 Json::fromNative((object) [
-                    'query' => '{ fieldThrow { fieldXyz { name } } }',
+                    'query' => '{ fieldInvalidType { __typename } }',
                 ]),
                 Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Server responded with unknown error.',
-                ],
+                    'errors' => [[
+                        'message' => 'Server responded with unknown error.',
                     ],
-                    ]),
-            ],
-            [
-                Json::fromNative((object) [
-                    'query' => '{ fieldInvalidType { } }',
+                    ],
                 ]),
-                Json::fromNative((object) [
-        'errors' => [[
-                    'message' => 'Server responded with unknown error.',
-                ],
-                    ],
-                    ]),
             ],
             [
                 Json::fromNative((object) [
@@ -306,7 +307,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                         'message' => 'Duplicated directive "skip" which is not repeatable.',
                         'path' => ['queryName <operation>', 'fieldAbc <field>', 'fieldXyz <field>', 'skip <directive>'],
                     ],
-                        ],
+                    ],
                 ]),
             ],
             [
@@ -318,7 +319,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                         'message' => 'Invalid value resolved for type "Int" - got "invalid".',
                         'path' => ['queryName <operation>', 'fieldArgumentDefaults <field>', 'inputNumberList <argument>', '1 <list index>'],
                     ],
-                        ],
+                    ],
                 ]),
             ],
             [
@@ -330,7 +331,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                         'message' => 'Invalid value resolved for type "SimpleEnum" - got 123.',
                         'path' => ['queryName <operation>', 'fieldEnumArg <field>', 'val <argument>'],
                     ],
-                        ],
+                    ],
                 ]),
             ],
             [
@@ -343,7 +344,7 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                         'message' => 'Invalid value resolved for type "Int" - got "invalid".',
                         'path' => ['queryName <operation>', 'var1 <variable>', '1 <list index>'],
                     ],
-                        ],
+                    ],
                 ]),
             ],
             [
@@ -353,81 +354,74 @@ final class ErrorsTest extends \PHPUnit\Framework\TestCase
                 Json::fromNative((object) [
                     'errors' => [[
                         'message' => 'Invalid fragment type condition. ("InterfaceEfg" is not instance of "Xyz").',
-                        'path' => [' <operation>', 'fieldUnion <field>', '<inline fragment>', 'fieldXyz <field>', '<inline fragment>'],
+                        'path' => ['<shorthand operation>', 'fieldUnion <field>', '<inline fragment>', 'fieldXyz <field>', '<inline fragment>'],
                     ],
-                        ],
+                    ],
                 ]),
             ],
         ];
     }
 
-    /**
-     * @dataProvider tokenizerDataProvider
-     * @dataProvider parserDataProvider
-     * @dataProvider normalizerDataProvider
-     * @param \Infinityloop\Utils\Json $request
-     * @param \Infinityloop\Utils\Json $expected
-     */
+    #[DataProvider('tokenizerDataProvider')]
     public function testSimple(Json $request, Json $expected) : void
     {
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema(), true);
-        $result = $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator = new Graphpinator(TestSchema::getSchema(), true);
+        $result = $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertSame($expected->toString(), $result->toString());
     }
 
-    public function psrDataProvider() : array
+    public function testPsrRequestPut() : void
     {
-        $httpRequest = $this->createStub(\Psr\Http\Message\ServerRequestInterface::class);
+        $httpRequest = $this->createStub(ServerRequestInterface::class);
         $httpRequest->method('getMethod')->willReturn('PUT');
 
-        $httpRequest2 = $this->createStub(\Psr\Http\Message\ServerRequestInterface::class);
-        $httpRequest2->method('getParsedBody')->willReturn([]);
-        $httpRequest2->method('getHeader')->willReturn(['multipart/form-data; boundary=-------9051914041544843365972754266']);
-        $httpRequest2->method('getMethod')->willReturn('POST');
+        $expected = Json::fromNative((object) [
+            'errors' => [
+                ['message' => 'Invalid request - only GET and POST methods are supported.'],
+            ],
+        ]);
 
-        $httpRequest3 = $this->createStub(\Psr\Http\Message\ServerRequestInterface::class);
-        $httpRequest3->method('getParsedBody')->willReturn(['operations' => '{}']);
-        $httpRequest3->method('getHeader')->willReturn(['multipart/form-data; boundary=-------9051914041544843365972754266']);
-        $httpRequest3->method('getMethod')->willReturn('GET');
+        $graphpinator = new Graphpinator(TestSchema::getSchema(), true);
+        $result = $graphpinator->run(new PsrRequestFactory($httpRequest));
 
-        return [
-            [
-                $httpRequest,
-                Json::fromNative((object) [
-                    'errors' => [
-                        ['message' => 'Invalid request - only GET and POST methods are supported.'],
-                    ],
-                ]),
-            ],
-            [
-                $httpRequest2,
-                Json::fromNative((object) [
-                    'errors' => [
-                        ['message' => 'Invalid multipart request - request must be POST and contain "operations" data.'],
-                    ],
-                ]),
-            ],
-            [
-                $httpRequest3,
-                Json::fromNative((object) [
-                    'errors' => [
-                        ['message' => 'Invalid multipart request - request must be POST and contain "operations" data.'],
-                    ],
-                ]),
-            ],
-        ];
+        self::assertSame($expected->toString(), $result->toString());
     }
 
-    /**
-     * @dataProvider psrDataProvider
-     * @param \Psr\Http\Message\ServerRequestInterface $request
-     * @param \Infinityloop\Utils\Json $expected
-     */
-    public function testPsrRequest(\Psr\Http\Message\ServerRequestInterface $request, Json $expected) : void
+    public function testPsrRequestMultipartNoOperations() : void
     {
-        $graphpinator = new \Graphpinator\Graphpinator(TestSchema::getSchema(), true);
-        $result = $graphpinator->run(new \Graphpinator\Request\PsrRequestFactory($request));
+        $httpRequest = $this->createStub(ServerRequestInterface::class);
+        $httpRequest->method('getParsedBody')->willReturn([]);
+        $httpRequest->method('getHeader')->willReturn(['multipart/form-data; boundary=-------9051914041544843365972754266']);
+        $httpRequest->method('getMethod')->willReturn('POST');
+
+        $expected = Json::fromNative((object) [
+            'errors' => [
+                ['message' => 'Invalid multipart request - request must be POST and contain "operations" data.'],
+            ],
+        ]);
+
+        $graphpinator = new Graphpinator(TestSchema::getSchema(), true);
+        $result = $graphpinator->run(new PsrRequestFactory($httpRequest));
+
+        self::assertSame($expected->toString(), $result->toString());
+    }
+
+    public function testPsrRequestMultipartGet() : void
+    {
+        $httpRequest = $this->createStub(ServerRequestInterface::class);
+        $httpRequest->method('getParsedBody')->willReturn(['operations' => '{}']);
+        $httpRequest->method('getHeader')->willReturn(['multipart/form-data; boundary=-------9051914041544843365972754266']);
+        $httpRequest->method('getMethod')->willReturn('GET');
+
+        $expected = Json::fromNative((object) [
+            'errors' => [
+                ['message' => 'Invalid multipart request - request must be POST and contain "operations" data.'],
+            ],
+        ]);
+
+        $graphpinator = new Graphpinator(TestSchema::getSchema(), true);
+        $result = $graphpinator->run(new PsrRequestFactory($httpRequest));
 
         self::assertSame($expected->toString(), $result->toString());
     }

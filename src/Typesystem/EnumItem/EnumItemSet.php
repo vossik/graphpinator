@@ -4,14 +4,20 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\EnumItem;
 
+use Infinityloop\Utils\ImplicitObjectMap;
+
 /**
- * @method \Graphpinator\Typesystem\EnumItem\EnumItem current() : object
- * @method \Graphpinator\Typesystem\EnumItem\EnumItem offsetGet($offset) : object
+ * @method EnumItem current() : object
+ * @method EnumItem offsetGet($offset) : object
  */
-final class EnumItemSet extends \Infinityloop\Utils\ImplicitObjectMap
+final class EnumItemSet extends ImplicitObjectMap
 {
     protected const INNER_CLASS = EnumItem::class;
 
+    /**
+     * @param list<EnumItem> $data
+     * @param ?string $enumClass
+     */
     public function __construct(
         array $data = [],
         private ?string $enumClass = null,
@@ -25,6 +31,9 @@ final class EnumItemSet extends \Infinityloop\Utils\ImplicitObjectMap
         return $this->enumClass;
     }
 
+    /**
+     * @return list<string>
+     */
     public function getArray() : array
     {
         $return = [];
@@ -36,8 +45,11 @@ final class EnumItemSet extends \Infinityloop\Utils\ImplicitObjectMap
         return $return;
     }
 
+    #[\Override]
     protected function getKey(object $object) : string
     {
+        \assert($object instanceof EnumItem);
+
         return $object->getName();
     }
 }

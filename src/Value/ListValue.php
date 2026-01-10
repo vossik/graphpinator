@@ -4,39 +4,61 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Value;
 
-abstract class ListValue implements \Graphpinator\Value\Value, \IteratorAggregate, \ArrayAccess
-{
-    use \Nette\SmartObject;
+use Graphpinator\Typesystem\ListType;
+use Graphpinator\Value\Contract\InputedValue;
+use Graphpinator\Value\Contract\InputedValueVisitor;
+use Graphpinator\Value\Contract\OutputValue;
+use Graphpinator\Value\Contract\Value;
 
+/**
+ * @implements \IteratorAggregate<Value>
+ */
+final class ListValue implements InputedValue, OutputValue, \IteratorAggregate
+{
     public function __construct(
-        protected \Graphpinator\Typesystem\ListType $type,
-        protected array $value,
+        public readonly ListType $type,
+        /** @var list<Value> */
+        public array $value,
     )
     {
     }
 
+    #[\Override]
+    public function accept(InputedValueVisitor $visitor) : mixed
+    {
+        return $visitor->visitList($this);
+    }
+
+    #[\Override]
+    public function getType() : ListType
+    {
+        return $this->type;
+    }
+
+    #[\Override]
+    public function getRawValue() : array
+    {
+        $return = [];
+
+        foreach ($this->value as $listItem) {
+            $return[] = $listItem->getRawValue();
+        }
+
+        return $return;
+    }
+
+    /**
+     * @return \ArrayIterator<Value>
+     */
+    #[\Override]
     public function getIterator() : \ArrayIterator
     {
         return new \ArrayIterator($this->value);
     }
 
-    public function offsetExists($offset) : bool
+    #[\Override]
+    public function jsonSerialize() : array
     {
-        return \array_key_exists($offset, $this->value);
-    }
-
-    public function offsetGet($offset) : Value
-    {
-        return $this->value[$offset];
-    }
-
-    public function offsetSet($offset, $value) : void
-    {
-        $this->value[$offset] = $value;
-    }
-
-    public function offsetUnset($offset) : void
-    {
-        unset($this->value[$offset]);
+        return $this->value;
     }
 }

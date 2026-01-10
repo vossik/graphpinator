@@ -4,44 +4,41 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Value;
 
-final class TypeValue implements \Graphpinator\Value\OutputValue
-{
-    use \Nette\SmartObject;
+use Graphpinator\Typesystem\Location\ObjectLocation;
+use Graphpinator\Typesystem\Type;
+use Graphpinator\Value\Contract\OutputValue;
 
+final readonly class TypeValue implements OutputValue
+{
     public function __construct(
-        private \Graphpinator\Typesystem\Type $type,
-        private \stdClass $value,
+        public Type $type,
+        /** @var \stdClass{...FieldValue} */
+        public \stdClass $value,
+        public TypeIntermediateValue $intermediateValue,
     )
     {
-        foreach ($type->getDirectiveUsages() as $directive) {
-            $directiveDef = $directive->getDirective();
-            \assert($directiveDef instanceof \Graphpinator\Typesystem\Location\ObjectLocation);
-            $directiveDef->resolveObject($directive->getArgumentValues(), $this);
+        foreach ($type->getDirectiveUsages() as $directiveUsage) {
+            $directive = $directiveUsage->getDirective();
+            \assert($directive instanceof ObjectLocation);
+            $directive->resolveObject($directiveUsage->getArgumentValues(), $this);
         }
     }
 
+    #[\Override]
     public function getRawValue() : \stdClass
     {
         return $this->value;
     }
 
-    public function getType() : \Graphpinator\Typesystem\Type
+    #[\Override]
+    public function getType() : Type
     {
         return $this->type;
     }
 
+    #[\Override]
     public function jsonSerialize() : \stdClass
     {
         return $this->value;
-    }
-
-    public function __get(string $name) : \Graphpinator\Value\FieldValue
-    {
-        return $this->value->{$name};
-    }
-
-    public function __isset(string $name) : bool
-    {
-        return \property_exists($this->value, $name);
     }
 }

@@ -4,9 +4,16 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Tests\Unit\Typesystem\Scalar;
 
-final class IDTypeTest extends \PHPUnit\Framework\TestCase
+use Graphpinator\Common\Path;
+use Graphpinator\Typesystem\Spec\IdType;
+use Graphpinator\Value\Exception\InvalidValue;
+use Graphpinator\Value\Visitor\ConvertRawValueVisitor;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+final class IDTypeTest extends TestCase
 {
-    public function simpleDataProvider() : array
+    public static function simpleDataProvider() : array
     {
         return [
             [123, '123'],
@@ -15,7 +22,7 @@ final class IDTypeTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    public function invalidDataProvider() : array
+    public static function invalidDataProvider() : array
     {
         return [
             [123.123],
@@ -24,29 +31,22 @@ final class IDTypeTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider simpleDataProvider
-     * @param int|string|null $rawValue
-     * @param ?string $resultValue
-     */
+    #[DataProvider('simpleDataProvider')]
     public function testValidateValue(string|int|null $rawValue, ?string $resultValue) : void
     {
-        $id = new \Graphpinator\Typesystem\Spec\IdType();
-        $value = $id->accept(new \Graphpinator\Value\ConvertRawValueVisitor($rawValue, new \Graphpinator\Common\Path()));
+        $id = new IdType();
+        $value = $id->accept(new ConvertRawValueVisitor($rawValue, new Path()));
 
         self::assertSame($id, $value->getType());
         self::assertSame($resultValue, $value->getRawValue());
     }
 
-    /**
-     * @dataProvider invalidDataProvider
-     * @param float|bool|array $rawValue
-     */
+    #[DataProvider('invalidDataProvider')]
     public function testValidateValueInvalid($rawValue) : void
     {
-        $this->expectException(\Graphpinator\Exception\Value\InvalidValue::class);
+        $this->expectException(InvalidValue::class);
 
-        $id = new \Graphpinator\Typesystem\Spec\IdType();
-        $id->accept(new \Graphpinator\Value\ConvertRawValueVisitor($rawValue, new \Graphpinator\Common\Path()));
+        $id = new IdType();
+        $id->accept(new ConvertRawValueVisitor($rawValue, new Path()));
     }
 }

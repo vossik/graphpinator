@@ -4,42 +4,48 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\DirectiveUsage;
 
-final class DirectiveUsage implements \Graphpinator\Typesystem\Contract\Component
+use Graphpinator\Common\Path;
+use Graphpinator\Typesystem\Contract\Component;
+use Graphpinator\Typesystem\Contract\ComponentVisitor;
+use Graphpinator\Typesystem\Contract\TypeSystemDirective;
+use Graphpinator\Value\ArgumentValueSet;
+use Graphpinator\Value\Visitor\ConvertRawValueVisitor;
+
+final class DirectiveUsage implements Component
 {
-    use \Nette\SmartObject;
+    private ArgumentValueSet $argumentValues;
 
-    private \Graphpinator\Value\ArgumentValueSet $argumentValues;
-
+    /**
+     * @param TypeSystemDirective $directive
+     * @phpcs:ignore
+     * @param array<string, mixed> $arguments
+     */
     public function __construct(
-        private \Graphpinator\Typesystem\Contract\TypeSystemDirective $directive,
+        private TypeSystemDirective $directive,
         array $arguments,
     )
     {
-        // replace with \array_is_list() for PHP 8.1
-        if (\count($arguments) > 0 && \array_key_first($arguments) === 0) {
-            throw new \Graphpinator\Typesystem\Exception\DirectiveUsageArgumentsInvalidMap();
-        }
-
-        $this->argumentValues = new \Graphpinator\Value\ArgumentValueSet(
-            (array) \Graphpinator\Value\ConvertRawValueVisitor::convertArgumentSet(
+        $this->argumentValues = new ArgumentValueSet(
+            (array) ConvertRawValueVisitor::convertArgumentSet(
                 $directive->getArguments(),
                 (object) $arguments,
-                new \Graphpinator\Common\Path(),
+                new Path(),
             ),
         );
     }
 
-    public function getDirective() : \Graphpinator\Typesystem\Contract\TypeSystemDirective
+    public function getDirective() : TypeSystemDirective
     {
         return $this->directive;
     }
 
-    public function getArgumentValues() : \Graphpinator\Value\ArgumentValueSet
+    public function getArgumentValues() : ArgumentValueSet
     {
         return $this->argumentValues;
     }
 
-    public function accept(\Graphpinator\Typesystem\Contract\ComponentVisitor $visitor) : mixed
+    #[\Override]
+    public function accept(ComponentVisitor $visitor) : mixed
     {
         return $visitor->visitDirectiveUsage($this);
     }

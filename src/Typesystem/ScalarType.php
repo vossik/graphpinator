@@ -4,31 +4,54 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem;
 
-abstract class ScalarType extends \Graphpinator\Typesystem\Contract\LeafType
+use Graphpinator\Typesystem\Contract\LeafType;
+use Graphpinator\Typesystem\Contract\NamedType;
+use Graphpinator\Typesystem\Contract\NamedTypeVisitor;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage;
+use Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet;
+use Graphpinator\Typesystem\Location\ScalarLocation;
+use Graphpinator\Typesystem\Spec\SpecifiedByDirective;
+use Graphpinator\Typesystem\Utils\THasDirectives;
+
+/**
+ * @phpcs:ignore
+ * @template T of mixed
+ */
+abstract class ScalarType extends NamedType implements LeafType
 {
-    use \Graphpinator\Typesystem\Utils\THasDirectives;
+    use THasDirectives;
 
     public function __construct()
     {
-        $this->directiveUsages = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsageSet();
+        $this->directiveUsages = new DirectiveUsageSet();
     }
 
-    final public function accept(\Graphpinator\Typesystem\Contract\NamedTypeVisitor $visitor) : mixed
+    #[\Override]
+    final public function accept(NamedTypeVisitor $visitor) : mixed
     {
         return $visitor->visitScalar($this);
     }
 
-    public function coerceValue(mixed $rawValue) : mixed
-    {
-        return $rawValue;
-    }
+    /**
+     * @phpcs:ignore
+     * @param mixed $rawValue
+     * @return ?T
+     */
+    abstract public function validateAndCoerceInput(mixed $rawValue) : mixed;
 
-    final public function addDirective(
-        \Graphpinator\Typesystem\Location\ScalarLocation $directive,
-        array $arguments = [],
-    ) : static
+    /**
+     * @param T $rawValue
+     */
+    abstract public function coerceOutput(mixed $rawValue) : string|int|float|bool;
+
+    /**
+     * @param ScalarLocation $directive
+     * @phpcs:ignore
+     * @param array<string, mixed> $arguments
+     */
+    final public function addDirective(ScalarLocation $directive, array $arguments = []) : static
     {
-        $this->directiveUsages[] = new \Graphpinator\Typesystem\DirectiveUsage\DirectiveUsage($directive, $arguments);
+        $this->directiveUsages[] = new DirectiveUsage($directive, $arguments);
 
         return $this;
     }
@@ -36,7 +59,7 @@ abstract class ScalarType extends \Graphpinator\Typesystem\Contract\LeafType
     public function setSpecifiedBy(string $url) : self
     {
         $this->addDirective(
-            \Graphpinator\Typesystem\Container::directiveSpecifiedBy(),
+            Container::directiveSpecifiedBy(),
             ['url' => $url],
         );
 
@@ -46,8 +69,8 @@ abstract class ScalarType extends \Graphpinator\Typesystem\Contract\LeafType
     public function getSpecifiedByUrl() : ?string
     {
         foreach ($this->getDirectiveUsages() as $directive) {
-            if ($directive->getDirective() instanceof \Graphpinator\Typesystem\Spec\SpecifiedByDirective) {
-                return $directive->getArgumentValues()->offsetGet('url')->getValue()->getRawValue();
+            if ($directive->getDirective() instanceof SpecifiedByDirective) {
+                return $directive->getArgumentValues()->offsetGet('url')->value->getRawValue();
             }
         }
 

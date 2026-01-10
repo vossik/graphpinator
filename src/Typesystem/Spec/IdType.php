@@ -4,20 +4,33 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Spec;
 
-final class IdType extends \Graphpinator\Typesystem\ScalarType
+use Graphpinator\Typesystem\Attribute\Description;
+use Graphpinator\Typesystem\ScalarType;
+
+/**
+ * @extends ScalarType<string>
+ */
+#[Description('ID built-in type')]
+final class IdType extends ScalarType
 {
     protected const NAME = 'ID';
-    protected const DESCRIPTION = 'ID built-in type.';
 
-    public function validateNonNullValue(mixed $rawValue) : bool
+    #[\Override]
+    public function validateAndCoerceInput(mixed $rawValue) : ?string
     {
-        return \is_string($rawValue);
-    }
-
-    public function coerceValue(mixed $rawValue) : mixed
-    {
-        return \is_int($rawValue)
+        // coerce int to string
+        $rawValue = \is_int($rawValue)
             ? (string) $rawValue
             : $rawValue;
+
+        return \is_string($rawValue)
+            ? $rawValue
+            : null;
+    }
+
+    #[\Override]
+    public function coerceOutput(mixed $rawValue) : string
+    {
+        return $rawValue;
     }
 }

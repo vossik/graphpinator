@@ -4,43 +4,23 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Normalizer\Variable;
 
-final class Variable
+use Graphpinator\Normalizer\Directive\DirectiveSet;
+use Graphpinator\Normalizer\Exception\VariableTypeInputable;
+use Graphpinator\Typesystem\Contract\Type;
+use Graphpinator\Typesystem\Visitor\IsInputableVisitor;
+use Graphpinator\Value\Contract\InputedValue;
+
+final readonly class Variable
 {
-    use \Nette\SmartObject;
-
-    private \Graphpinator\Normalizer\Directive\DirectiveSet $directives;
-
     public function __construct(
-        private string $name,
-        private \Graphpinator\Typesystem\Contract\Inputable $type,
-        private ?\Graphpinator\Value\InputedValue $defaultValue,
+        public string $name,
+        public Type $type,
+        public ?InputedValue $defaultValue = null,
+        public DirectiveSet $directives = new DirectiveSet(),
     )
     {
-        $this->directives = new \Graphpinator\Normalizer\Directive\DirectiveSet();
-    }
-
-    public function getName() : string
-    {
-        return $this->name;
-    }
-
-    public function getType() : \Graphpinator\Typesystem\Contract\Inputable
-    {
-        return $this->type;
-    }
-
-    public function getDefaultValue() : ?\Graphpinator\Value\InputedValue
-    {
-        return $this->defaultValue;
-    }
-
-    public function setDirectives(\Graphpinator\Normalizer\Directive\DirectiveSet $directives) : void
-    {
-        $this->directives = $directives;
-    }
-
-    public function getDirectives() : \Graphpinator\Normalizer\Directive\DirectiveSet
-    {
-        return $this->directives;
+        if (!$type->accept(new IsInputableVisitor())) {
+            throw new VariableTypeInputable($this->name);
+        }
     }
 }

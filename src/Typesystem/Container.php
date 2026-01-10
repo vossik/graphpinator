@@ -4,22 +4,65 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem;
 
+use Graphpinator\Typesystem\Contract\NamedType;
+use Graphpinator\Typesystem\Introspection\Directive as IntrospectionDirective;
+use Graphpinator\Typesystem\Introspection\DirectiveLocation;
+use Graphpinator\Typesystem\Introspection\EnumValue;
+use Graphpinator\Typesystem\Introspection\Field;
+use Graphpinator\Typesystem\Introspection\InputValue;
+use Graphpinator\Typesystem\Introspection\Schema;
+use Graphpinator\Typesystem\Introspection\Type;
+use Graphpinator\Typesystem\Introspection\TypeKind;
+use Graphpinator\Typesystem\Spec\BooleanType;
+use Graphpinator\Typesystem\Spec\DeprecatedDirective;
+use Graphpinator\Typesystem\Spec\FloatType;
+use Graphpinator\Typesystem\Spec\IdType;
+use Graphpinator\Typesystem\Spec\IncludeDirective;
+use Graphpinator\Typesystem\Spec\IntType;
+use Graphpinator\Typesystem\Spec\OneOfDirective;
+use Graphpinator\Typesystem\Spec\SkipDirective;
+use Graphpinator\Typesystem\Spec\SpecifiedByDirective;
+use Graphpinator\Typesystem\Spec\StringType;
+
 /**
- * Class Container which is responsible for fetching instances of type classes.
- * @phpcs:disable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
+ * Class Container, which is responsible for fetching instances of type classes.
  */
 abstract class Container
 {
-    use \Nette\SmartObject;
-
+    /**
+     * @var array{
+     *     ID?: IdType,
+     *     Int?: IntType,
+     *     Float?: FloatType,
+     *     String?: StringType,
+     *     Boolean?: BooleanType,
+     *     __Schema?: Schema,
+     *     __Type?: Type,
+     *     __TypeKind?: TypeKind,
+     *     __Field?: Field,
+     *     __EnumValue?: EnumValue,
+     *     __InputValue?: InputValue,
+     *     __Directive?: IntrospectionDirective,
+     *     __DirectiveLocation?: DirectiveLocation,
+     * }
+     */
     protected static array $builtInTypes = [];
+    /**
+     * @var array{
+     *     skip?: SkipDirective,
+     *     include?: IncludeDirective,
+     *     deprecated?: DeprecatedDirective,
+     *     specifiedBy?: SpecifiedByDirective,
+     *     oneOf?: OneOfDirective,
+     * }
+     */
     protected static array $builtInDirectives = [];
 
     /**
-     * Core function to find type by its name.
+     * Core function to find a type by its name.
      * @param string $name
      */
-    abstract public function getType(string $name) : ?\Graphpinator\Typesystem\Contract\NamedType;
+    abstract public function getType(string $name) : ?NamedType;
 
     /**
      * Function to return all user-defined types.
@@ -28,10 +71,10 @@ abstract class Container
     abstract public function getTypes(bool $includeBuiltIn = false) : array;
 
     /**
-     * Core function to find directive by its name.
+     * Core function to find a directive by its name.
      * @param string $name
      */
-    abstract public function getDirective(string $name) : ?\Graphpinator\Typesystem\Directive;
+    abstract public function getDirective(string $name) : ?Directive;
 
     /**
      * Function to return all user-defined directives.
@@ -42,10 +85,10 @@ abstract class Container
     /**
      * Built-in Int type.
      */
-    public static function Int() : \Graphpinator\Typesystem\Spec\IntType
+    public static function Int() : IntType // @phpcs:ignore
     {
         if (!\array_key_exists('Int', self::$builtInTypes)) {
-            self::$builtInTypes['Int'] = new \Graphpinator\Typesystem\Spec\IntType();
+            self::$builtInTypes['Int'] = new IntType();
         }
 
         return self::$builtInTypes['Int'];
@@ -54,10 +97,10 @@ abstract class Container
     /**
      * Built-in Float type.
      */
-    public static function Float() : \Graphpinator\Typesystem\Spec\FloatType
+    public static function Float() : FloatType // @phpcs:ignore
     {
         if (!\array_key_exists('Float', self::$builtInTypes)) {
-            self::$builtInTypes['Float'] = new \Graphpinator\Typesystem\Spec\FloatType();
+            self::$builtInTypes['Float'] = new FloatType();
         }
 
         return self::$builtInTypes['Float'];
@@ -66,10 +109,10 @@ abstract class Container
     /**
      * Built-in String type.
      */
-    public static function String() : \Graphpinator\Typesystem\Spec\StringType
+    public static function String() : StringType // @phpcs:ignore
     {
         if (!\array_key_exists('String', self::$builtInTypes)) {
-            self::$builtInTypes['String'] = new \Graphpinator\Typesystem\Spec\StringType();
+            self::$builtInTypes['String'] = new StringType();
         }
 
         return self::$builtInTypes['String'];
@@ -78,10 +121,10 @@ abstract class Container
     /**
      * Built-in Boolean type.
      */
-    public static function Boolean() : \Graphpinator\Typesystem\Spec\BooleanType
+    public static function Boolean() : BooleanType // @phpcs:ignore
     {
         if (!\array_key_exists('Boolean', self::$builtInTypes)) {
-            self::$builtInTypes['Boolean'] = new \Graphpinator\Typesystem\Spec\BooleanType();
+            self::$builtInTypes['Boolean'] = new BooleanType();
         }
 
         return self::$builtInTypes['Boolean'];
@@ -90,10 +133,10 @@ abstract class Container
     /**
      * Built-in ID type.
      */
-    public static function ID() : \Graphpinator\Typesystem\Spec\IdType
+    public static function ID() : IdType // @phpcs:ignore
     {
         if (!\array_key_exists('ID', self::$builtInTypes)) {
-            self::$builtInTypes['ID'] = new \Graphpinator\Typesystem\Spec\IdType();
+            self::$builtInTypes['ID'] = new IdType();
         }
 
         return self::$builtInTypes['ID'];
@@ -102,10 +145,10 @@ abstract class Container
     /**
      * Built-in Skip directive.
      */
-    public static function directiveSkip() : \Graphpinator\Typesystem\Spec\SkipDirective
+    public static function directiveSkip() : SkipDirective
     {
         if (!\array_key_exists('skip', self::$builtInDirectives)) {
-            self::$builtInDirectives['skip'] = new \Graphpinator\Typesystem\Spec\SkipDirective();
+            self::$builtInDirectives['skip'] = new SkipDirective();
         }
 
         return self::$builtInDirectives['skip'];
@@ -114,10 +157,10 @@ abstract class Container
     /**
      * Built-in Include directive.
      */
-    public static function directiveInclude() : \Graphpinator\Typesystem\Spec\IncludeDirective
+    public static function directiveInclude() : IncludeDirective
     {
         if (!\array_key_exists('include', self::$builtInDirectives)) {
-            self::$builtInDirectives['include'] = new \Graphpinator\Typesystem\Spec\IncludeDirective();
+            self::$builtInDirectives['include'] = new IncludeDirective();
         }
 
         return self::$builtInDirectives['include'];
@@ -126,25 +169,36 @@ abstract class Container
     /**
      * Built-in Deprecated directive.
      */
-    public static function directiveDeprecated() : \Graphpinator\Typesystem\Spec\DeprecatedDirective
+    public static function directiveDeprecated() : DeprecatedDirective
     {
         if (!\array_key_exists('deprecated', self::$builtInDirectives)) {
-            self::$builtInDirectives['deprecated'] = new \Graphpinator\Typesystem\Spec\DeprecatedDirective();
+            self::$builtInDirectives['deprecated'] = new DeprecatedDirective();
         }
 
         return self::$builtInDirectives['deprecated'];
     }
 
     /**
-     * Built-in Specified By directive.
+     * Built-in SpecifiedBy directive.
      */
-    public static function directiveSpecifiedBy() : \Graphpinator\Typesystem\Spec\SpecifiedByDirective
+    public static function directiveSpecifiedBy() : SpecifiedByDirective
     {
         if (!\array_key_exists('specifiedBy', self::$builtInDirectives)) {
-            self::$builtInDirectives['specifiedBy'] = new \Graphpinator\Typesystem\Spec\SpecifiedByDirective();
+            self::$builtInDirectives['specifiedBy'] = new SpecifiedByDirective();
         }
 
         return self::$builtInDirectives['specifiedBy'];
     }
+
+    /**
+     * Built-in SpecifiedBy directive.
+     */
+    public static function directiveOneOf() : OneOfDirective
+    {
+        if (!\array_key_exists('oneOf', self::$builtInDirectives)) {
+            self::$builtInDirectives['oneOf'] = new OneOfDirective();
+        }
+
+        return self::$builtInDirectives['oneOf'];
+    }
 }
-//@phpcs:enable PSR1.Methods.CamelCapsMethodName.NotCamelCaps

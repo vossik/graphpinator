@@ -4,20 +4,33 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Spec;
 
-final class FloatType extends \Graphpinator\Typesystem\ScalarType
+use Graphpinator\Typesystem\Attribute\Description;
+use Graphpinator\Typesystem\ScalarType;
+
+/**
+ * @extends ScalarType<float>
+ */
+#[Description('Float built-in type')]
+final class FloatType extends ScalarType
 {
     protected const NAME = 'Float';
-    protected const DESCRIPTION = 'Float built-in type.';
 
-    public function validateNonNullValue(mixed $rawValue) : bool
+    #[\Override]
+    public function validateAndCoerceInput(mixed $rawValue) : ?float
     {
-        return \is_float($rawValue) && \is_finite($rawValue);
-    }
-
-    public function coerceValue(mixed $rawValue) : mixed
-    {
-        return \is_int($rawValue)
+        // coerce int to float
+        $rawValue = \is_int($rawValue)
             ? (float) $rawValue
             : $rawValue;
+
+        return \is_float($rawValue) && \is_finite($rawValue)
+            ? $rawValue
+            : null;
+    }
+
+    #[\Override]
+    public function coerceOutput(mixed $rawValue) : float
+    {
+        return $rawValue;
     }
 }

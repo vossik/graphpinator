@@ -4,12 +4,18 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Contract;
 
-//@phpcs:ignore SlevomatCodingStandard.Classes.SuperfluousAbstractClassNaming.SuperfluousPrefix
-abstract class AbstractType extends \Graphpinator\Typesystem\Contract\NamedType implements
-    \Graphpinator\Typesystem\Contract\Outputable,
-    \Graphpinator\Typesystem\Contract\TypeConditionable
-{
-    abstract public function isImplementedBy(\Graphpinator\Typesystem\Contract\Type $type) : bool;
+use Graphpinator\Value\TypeIntermediateValue;
 
-    abstract public function createResolvedValue(mixed $rawValue) : \Graphpinator\Value\TypeIntermediateValue;
+//@phpcs:ignore SlevomatCodingStandard.Classes.SuperfluousAbstractClassNaming.SuperfluousPrefix
+abstract class AbstractType extends NamedType implements TypeConditionable
+{
+    /**
+     * @template T of mixed
+     * @param AbstractTypeVisitor<T> $visitor
+     * @return T
+     */
+    #[\Override]
+    abstract public function accept(AbstractTypeVisitor $visitor) : mixed;
+
+    abstract public function createResolvedValue(mixed $rawValue) : TypeIntermediateValue;
 }

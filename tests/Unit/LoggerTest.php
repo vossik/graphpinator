@@ -4,9 +4,16 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Tests\Unit;
 
-use \Infinityloop\Utils\Json;
+use Graphpinator\Graphpinator;
+use Graphpinator\Request\JsonRequestFactory;
+use Graphpinator\Tests\Spec\TestSchema;
+use Infinityloop\Utils\Json;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LogLevel;
+use Psr\Log\NullLogger;
 
-final class LoggerTest extends \PHPUnit\Framework\TestCase
+final class LoggerTest extends TestCase
 {
     protected array $logs;
 
@@ -23,26 +30,25 @@ final class LoggerTest extends \PHPUnit\Framework\TestCase
     {
         $this->logs = [];
 
-        $loggerMock = $this->createPartialMock(\Psr\Log\AbstractLogger::class, ['log']);
+        $loggerMock = $this->createPartialMock(AbstractLogger::class, ['log']);
         $loggerMock->expects($this->once())
             ->method('log')
             ->willReturnCallback([$this, 'mockLog']);
 
-        $graphpinator = new \Graphpinator\Graphpinator(
-            \Graphpinator\Tests\Spec\TestSchema::getSchema(),
+        $graphpinator = new Graphpinator(
+            TestSchema::getSchema(),
             true,
-            null,
-            $loggerMock,
+            logger: $loggerMock,
         );
 
         $request = Json::fromNative((object) [
             'query' => 'query queryName { fieldArgumentDefaults(inputNumberList: [3, 4]) { fieldName fieldNumber fieldBool } }',
         ]);
 
-        $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertCount(1, $this->logs);
-        self::assertSame(\Psr\Log\LogLevel::DEBUG, $this->logs[0]['level']);
+        self::assertSame(LogLevel::DEBUG, $this->logs[0]['level']);
         self::assertSame($request['query'], $this->logs[0]['message']);
     }
 
@@ -50,16 +56,15 @@ final class LoggerTest extends \PHPUnit\Framework\TestCase
     {
         $this->logs = [];
 
-        $loggerMock = $this->createPartialMock(\Psr\Log\AbstractLogger::class, ['log']);
+        $loggerMock = $this->createPartialMock(AbstractLogger::class, ['log']);
         $loggerMock->expects($this->exactly(2))
             ->method('log')
             ->willReturnCallback([$this, 'mockLog']);
 
-        $graphpinator = new \Graphpinator\Graphpinator(
-            \Graphpinator\Tests\Spec\TestSchema::getSchema(),
+        $graphpinator = new Graphpinator(
+            TestSchema::getSchema(),
             true,
-            null,
-            $loggerMock,
+            logger: $loggerMock,
         );
 
         $request = Json::fromNative((object) [
@@ -67,12 +72,12 @@ final class LoggerTest extends \PHPUnit\Framework\TestCase
         ]);
         $expected = 'Expected selection set, got "name".';
 
-        $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertCount(2, $this->logs);
-        self::assertSame(\Psr\Log\LogLevel::DEBUG, $this->logs[0]['level']);
+        self::assertSame(LogLevel::DEBUG, $this->logs[0]['level']);
         self::assertSame($request['query'], $this->logs[0]['message']);
-        self::assertSame(\Psr\Log\LogLevel::INFO, $this->logs[1]['level']);
+        self::assertSame(LogLevel::INFO, $this->logs[1]['level']);
         self::assertStringStartsWith($expected, $this->logs[1]['message'] . ' in ');
     }
 
@@ -80,16 +85,15 @@ final class LoggerTest extends \PHPUnit\Framework\TestCase
     {
         $this->logs = [];
 
-        $loggerMock = $this->createPartialMock(\Psr\Log\AbstractLogger::class, ['log']);
+        $loggerMock = $this->createPartialMock(AbstractLogger::class, ['log']);
         $loggerMock->expects($this->exactly(2))
             ->method('log')
             ->willReturnCallback([$this, 'mockLog']);
 
-        $graphpinator = new \Graphpinator\Graphpinator(
-            \Graphpinator\Tests\Spec\TestSchema::getSchema(),
+        $graphpinator = new Graphpinator(
+            TestSchema::getSchema(),
             true,
-            null,
-            $loggerMock,
+            logger: $loggerMock,
         );
 
         $request = Json::fromNative((object) [
@@ -97,12 +101,12 @@ final class LoggerTest extends \PHPUnit\Framework\TestCase
         ]);
         $expected = 'Random exception';
 
-        $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertCount(2, $this->logs);
-        self::assertSame(\Psr\Log\LogLevel::DEBUG, $this->logs[0]['level']);
+        self::assertSame(LogLevel::DEBUG, $this->logs[0]['level']);
         self::assertSame($request['query'], $this->logs[0]['message']);
-        self::assertSame(\Psr\Log\LogLevel::EMERGENCY, $this->logs[1]['level']);
+        self::assertSame(LogLevel::EMERGENCY, $this->logs[1]['level']);
         self::assertStringStartsWith($expected, $this->logs[1]['message'] . ' in ');
     }
 
@@ -110,31 +114,30 @@ final class LoggerTest extends \PHPUnit\Framework\TestCase
     {
         $this->logs = [];
 
-        $loggerMock = $this->createPartialMock(\Psr\Log\AbstractLogger::class, ['log']);
+        $loggerMock = $this->createPartialMock(AbstractLogger::class, ['log']);
         $loggerMock->expects($this->once())
             ->method('log')
             ->willReturnCallback([$this, 'mockLog']);
 
-        $graphpinator = new \Graphpinator\Graphpinator(
-            \Graphpinator\Tests\Spec\TestSchema::getSchema(),
+        $graphpinator = new Graphpinator(
+            TestSchema::getSchema(),
             true,
-            null,
-            $loggerMock,
+            logger: $loggerMock,
         );
         $request = Json::fromNative((object) [
             'query' => 'query queryName { fieldArgumentDefaults(inputNumberList: [3, 4]) { fieldName fieldNumber fieldBool } }',
         ]);
 
-        $graphpinator->setLogger(new \Psr\Log\NullLogger());
-        $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator->setLogger(new NullLogger());
+        $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertCount(0, $this->logs);
 
         $graphpinator->setLogger($loggerMock);
-        $graphpinator->run(new \Graphpinator\Request\JsonRequestFactory($request));
+        $graphpinator->run(new JsonRequestFactory($request));
 
         self::assertCount(1, $this->logs);
-        self::assertSame(\Psr\Log\LogLevel::DEBUG, $this->logs[0]['level']);
+        self::assertSame(LogLevel::DEBUG, $this->logs[0]['level']);
         self::assertSame($request['query'], $this->logs[0]['message']);
     }
 }

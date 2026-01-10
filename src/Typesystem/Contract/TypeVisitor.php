@@ -4,9 +4,22 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Contract;
 
-interface TypeVisitor extends \Graphpinator\Typesystem\Contract\NamedTypeVisitor
-{
-    public function visitNotNull(\Graphpinator\Typesystem\NotNullType $notNull) : mixed;
+use Graphpinator\Typesystem\ListType;
+use Graphpinator\Typesystem\NotNullType;
 
-    public function visitList(\Graphpinator\Typesystem\ListType $list) : mixed;
+/**
+ * @template T
+ * @template-extends NamedTypeVisitor<T>
+ */
+interface TypeVisitor extends NamedTypeVisitor
+{
+    /**
+     * @return T
+     */
+    public function visitNotNull(NotNullType $notNull) : mixed;
+
+    /**
+     * @return T
+     */
+    public function visitList(ListType $list) : mixed;
 }

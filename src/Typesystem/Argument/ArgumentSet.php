@@ -4,11 +4,14 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Argument;
 
+use Graphpinator\Value\ArgumentValue;
+use Infinityloop\Utils\ImplicitObjectMap;
+
 /**
- * @method \Graphpinator\Typesystem\Argument\Argument current() : object
- * @method \Graphpinator\Typesystem\Argument\Argument offsetGet($offset) : object
+ * @method Argument current() : object
+ * @method Argument offsetGet($offset) : object
  */
-final class ArgumentSet extends \Infinityloop\Utils\ImplicitObjectMap
+final class ArgumentSet extends ImplicitObjectMap
 {
     protected const INNER_CLASS = Argument::class;
 
@@ -19,6 +22,7 @@ final class ArgumentSet extends \Infinityloop\Utils\ImplicitObjectMap
         return $this->defaults;
     }
 
+    #[\Override]
     public function offsetSet($offset, $value) : void
     {
         \assert($value instanceof Argument);
@@ -27,11 +31,12 @@ final class ArgumentSet extends \Infinityloop\Utils\ImplicitObjectMap
 
         $defaultValue = $value->getDefaultValue();
 
-        if ($defaultValue instanceof \Graphpinator\Value\ArgumentValue) {
-            $this->defaults[$value->getName()] = $defaultValue->getValue()->getRawValue();
+        if ($defaultValue instanceof ArgumentValue) {
+            $this->defaults[$value->getName()] = $defaultValue->value->getRawValue();
         }
     }
 
+    #[\Override]
     protected function getKey(object $object) : string
     {
         \assert($object instanceof Argument);

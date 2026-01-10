@@ -7,9 +7,10 @@ namespace Graphpinator\Typesystem\Contract;
 /**
  * Interface Entity
  *
- * Entity is a first class citizen in typesystem, currently Schema, Type definition and Directive definition.
+ * Entity is a first-class citizen in typesystem, currently Schema, Type definition and Directive definition.
  */
-interface Entity extends \Graphpinator\Typesystem\Contract\Component
+interface Entity extends Component
 {
-    public function accept(\Graphpinator\Typesystem\Contract\EntityVisitor $visitor) : mixed;
+    #[\Override]
+    public function accept(EntityVisitor $visitor) : mixed;
 }

@@ -4,68 +4,74 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Normalizer;
 
+use Graphpinator\Common\Path;
+use Graphpinator\Exception\GraphpinatorBase;
+use Graphpinator\Normalizer\Operation\Operation;
+use Graphpinator\Normalizer\Variable\Variable;
+use Graphpinator\Typesystem\Location\VariableDefinitionLocation;
+use Graphpinator\Value\Contract\InputedValue;
+use Graphpinator\Value\Visitor\ConvertRawValueVisitor;
+
 final class Finalizer
 {
-    use \Nette\SmartObject;
-
-    private \Graphpinator\Common\Path $path;
+    private Path $path;
 
     public function finalize(NormalizedRequest $normalizedRequest, \stdClass $variables, ?string $operationName) : FinalizedRequest
     {
-        $this->path = new \Graphpinator\Common\Path();
+        $this->path = new Path();
 
         try {
             $operation = $this->selectOperation($normalizedRequest, $operationName);
-            $this->path->add($operation->getName() . ' <operation>');
+            $this->path->add($operation->name . ' <operation>');
             $this->applyVariables($operation, $variables);
-        } catch (\Graphpinator\Exception\GraphpinatorBase $e) {
+        } catch (GraphpinatorBase $e) {
             throw $e->setPath($this->path);
         }
 
         return new FinalizedRequest($operation);
     }
 
-    private function selectOperation(NormalizedRequest $normalizedRequest, ?string $operationName) : \Graphpinator\Normalizer\Operation\Operation
+    private function selectOperation(NormalizedRequest $normalizedRequest, ?string $operationName) : Operation
     {
         return $operationName === null
-            ? $normalizedRequest->getOperations()->getFirst()
-            : $normalizedRequest->getOperations()->offsetGet($operationName);
+            ? $normalizedRequest->operations->getFirst()
+            : $normalizedRequest->operations->offsetGet($operationName);
     }
 
-    private function applyVariables(\Graphpinator\Normalizer\Operation\Operation $operation, \stdClass $variables) : void
+    private function applyVariables(Operation $operation, \stdClass $variables) : void
     {
         $normalized = [];
 
-        foreach ($operation->getVariables() as $variable) {
-            $this->path->add($variable->getName() . ' <variable>');
+        foreach ($operation->variables as $variable) {
+            $this->path->add($variable->name . ' <variable>');
             $value = $this->normalizeVariableValue($variable, $variables);
 
-            foreach ($variable->getDirectives() as $directive) {
-                $directiveDef = $directive->getDirective();
-                \assert($directiveDef instanceof \Graphpinator\Typesystem\Location\VariableDefinitionLocation);
-                $directiveDef->resolveVariableDefinition($directive->getArguments(), $value);
+            foreach ($variable->directives as $directive) {
+                $directiveDef = $directive->directive;
+                \assert($directiveDef instanceof VariableDefinitionLocation);
+                $directiveDef->resolveVariableDefinition($directive->arguments, $value);
             }
 
-            $normalized[$variable->getName()] = $value;
+            $normalized[$variable->name] = $value;
             $this->path->pop();
         }
 
-        $operation->getSelections()->applyVariables(new \Graphpinator\Normalizer\VariableValueSet($normalized));
+        $operation->children->applyVariables(new VariableValueSet($normalized));
     }
 
     private function normalizeVariableValue(
-        \Graphpinator\Normalizer\Variable\Variable $variable,
+        Variable $variable,
         \stdClass $variables,
-    ) : \Graphpinator\Value\InputedValue
+    ) : InputedValue
     {
-        if (isset($variables->{$variable->getName()})) {
-            return $variable->getType()->accept(new \Graphpinator\Value\ConvertRawValueVisitor($variables->{$variable->getName()}, $this->path));
+        if (isset($variables->{$variable->name})) {
+            return $variable->type->accept(new ConvertRawValueVisitor($variables->{$variable->name}, $this->path));
         }
 
-        if ($variable->getDefaultValue() instanceof \Graphpinator\Value\InputedValue) {
-            return $variable->getDefaultValue();
+        if ($variable->defaultValue instanceof InputedValue) {
+            return $variable->defaultValue;
         }
 
-        return $variable->getType()->accept(new \Graphpinator\Value\ConvertRawValueVisitor(null, $this->path));
+        return $variable->type->accept(new ConvertRawValueVisitor(null, $this->path));
     }
 }

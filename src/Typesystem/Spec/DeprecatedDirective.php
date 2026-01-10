@@ -4,88 +4,94 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Spec;
 
-final class DeprecatedDirective extends \Graphpinator\Typesystem\Directive implements
-    \Graphpinator\Typesystem\Location\FieldDefinitionLocation,
-    \Graphpinator\Typesystem\Location\EnumItemLocation,
-    \Graphpinator\Typesystem\Location\ArgumentDefinitionLocation
-{
-    protected const NAME = 'deprecated';
-    protected const DESCRIPTION = 'Built-in deprecated directive.';
+use Graphpinator\Typesystem\Argument\Argument;
+use Graphpinator\Typesystem\Argument\ArgumentSet;
+use Graphpinator\Typesystem\Attribute\Description;
+use Graphpinator\Typesystem\Container;
+use Graphpinator\Typesystem\Directive;
+use Graphpinator\Typesystem\Field\Field;
+use Graphpinator\Typesystem\Location\ArgumentDefinitionLocation;
+use Graphpinator\Typesystem\Location\EnumItemLocation;
+use Graphpinator\Typesystem\Location\FieldDefinitionLocation;
+use Graphpinator\Typesystem\NotNullType;
+use Graphpinator\Value\ArgumentValue;
+use Graphpinator\Value\ArgumentValueSet;
+use Graphpinator\Value\Contract\Value;
+use Graphpinator\Value\FieldValue;
 
+#[Description('Built-in deprecated directive')]
+final class DeprecatedDirective extends Directive implements
+    FieldDefinitionLocation,
+    EnumItemLocation,
+    ArgumentDefinitionLocation
+{
+    public const DEFAULT_MESSAGE = 'No longer supported';
+    protected const NAME = 'deprecated';
+
+    #[\Override]
     public static function isPure() : bool
     {
         return true;
     }
 
-    public function validateFieldUsage(
-        \Graphpinator\Typesystem\Field\Field $field,
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : bool
+    #[\Override]
+    public function validateFieldUsage(Field $field, ArgumentValueSet $arguments) : bool
     {
         return true;
     }
 
-    public function validateVariance(
-        ?\Graphpinator\Value\ArgumentValueSet $biggerSet,
-        ?\Graphpinator\Value\ArgumentValueSet $smallerSet,
-    ) : void
+    #[\Override]
+    public function validateVariance(?ArgumentValueSet $biggerSet, ?ArgumentValueSet $smallerSet) : void
     {
         // nothing here
     }
 
-    public function resolveFieldDefinitionStart(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-        \Graphpinator\Value\ResolvedValue $parentValue,
-    ) : void
+    #[\Override]
+    public function resolveFieldDefinitionStart(ArgumentValueSet $arguments, Value $parentValue) : void
     {
         // nothing here
     }
 
-    public function resolveFieldDefinitionBefore(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-        \Graphpinator\Value\ResolvedValue $parentValue,
-        \Graphpinator\Value\ArgumentValueSet $fieldArguments,
-    ) : void
+    #[\Override]
+    public function resolveFieldDefinitionBefore(ArgumentValueSet $arguments, Value $parentValue, ArgumentValueSet $fieldArguments) : void
     {
         // nothing here
     }
 
-    public function resolveFieldDefinitionAfter(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-        \Graphpinator\Value\ResolvedValue $resolvedValue,
-        \Graphpinator\Value\ArgumentValueSet $fieldArguments,
-    ) : void
+    #[\Override]
+    public function resolveFieldDefinitionAfter(ArgumentValueSet $arguments, Value $resolvedValue, ArgumentValueSet $fieldArguments) : void
     {
         // nothing here
     }
 
-    public function resolveFieldDefinitionValue(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-        \Graphpinator\Value\FieldValue $fieldValue,
-    ) : void
+    #[\Override]
+    public function resolveFieldDefinitionValue(ArgumentValueSet $arguments, FieldValue $fieldValue) : void
     {
         // nothing here
     }
 
-    public function validateArgumentUsage(
-        \Graphpinator\Typesystem\Argument\Argument $argument,
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : bool
+    #[\Override]
+    public function validateArgumentUsage(Argument $argument, ArgumentValueSet $arguments) : bool
     {
+        if ($argument->getType() instanceof NotNullType) {
+            return $argument->getDefaultValue() instanceof ArgumentValue;
+        }
+
         return true;
     }
 
-    public function resolveArgumentDefinition(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-        \Graphpinator\Value\ArgumentValue $argumentValue,
-    ) : void
+    #[\Override]
+    public function resolveArgumentDefinition(ArgumentValueSet $arguments, ArgumentValue $argumentValue) : void
     {
+        // nothing here
     }
 
-    protected function getFieldDefinition() : \Graphpinator\Typesystem\Argument\ArgumentSet
+    #[\Override]
+    protected function getFieldDefinition() : ArgumentSet
     {
-        return new \Graphpinator\Typesystem\Argument\ArgumentSet([
-            new \Graphpinator\Typesystem\Argument\Argument('reason', \Graphpinator\Typesystem\Container::String()),
+        return new ArgumentSet([
+            Argument::create('reason', Container::String()->notNull())
+                ->setDefaultValue(self::DEFAULT_MESSAGE),
         ]);
     }
 }

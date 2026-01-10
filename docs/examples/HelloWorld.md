@@ -26,25 +26,32 @@ declare(strict_types = 1);
 
 namespace Example;
 
-final class Query extends \Graphpinator\Typesystem\Type
+use Graphpinator\Typesystem\Attribute\Description;
+use Graphpinator\Typesystem\Container;
+use Graphpinator\Typesystem\Field\ResolvableField;
+use Graphpinator\Typesystem\Field\ResolvableFieldSet;
+use Graphpinator\Typesystem\Type;
+
+#[Description('Graphpinator HelloWorld: Query type')]
+final class Query extends Type
 {
     protected const NAME = 'Query';
     protected const DESCRIPTION = 'Graphpinator HelloWorld: Query type';
 
     public function validateNonNullValue($rawValue) : bool
     {
-        // validation of resolved value from parent, Query is the initial type in the schema = has no parent so this function is never called
+        // validation of resolved value from parent, Query is the initial type in the schema = has no parent
         return true;
     }
 
-    protected function getFieldDefinition() : \Graphpinator\Typesystem\Field\ResolvableFieldSet
+    protected function getFieldDefinition() : ResolvableFieldSet
     {
         // types return ResolvableFieldSet, which is a map of ResolvableField (Fields with resolve function)
         // interface only define FieldSet, which is a map of Field, which does not have resolve function but only define the signature
-        return new \Graphpinator\Typesystem\Field\ResolvableFieldSet([
-            new \Graphpinator\Typesystem\Field\ResolvableField(
+        return new ResolvableFieldSet([
+            new ResolvableField(
                 'helloWorld',
-                \Graphpinator\Typesystem\Container::String()->notNull(),
+                Container::String()->notNull(),
                 function ($parent) : string {
                     return 'Hello world!';
                 },
@@ -116,9 +123,9 @@ It contains your `Schema`, logger, and other information needed to execute a req
 ```php
 $graphpinator = new \Graphpinator\Graphpinator(
     $schema, 
-    true,            // optional bool - whether to catch exceptions (Dont worry! Only graphpinator errors are printed in response, eg. syntax errors)
-    null,            // optional \Graphpinator\Module\ModuleSet - extending functionality using modules
-    $loggerInterface // optional \Psr\Log\LoggerInterface - logging queries and errors
+    true,             // optional bool - whether to catch exceptions (Dont worry! Only graphpinator errors are printed in response, eg. syntax errors)
+    $modules,         // optional \Graphpinator\Module\ModuleSet - extending functionality using modules
+    $loggerInterface  // optional \Psr\Log\LoggerInterface - logging queries and errors
 );
 ```
 

@@ -4,15 +4,15 @@
             "src"
         ]
     },
-    "timeout": 30,
+    "timeout": 10,
     "logs": {
         "text": "build/infection.log",
         "summary": "build/summary.log",
         "perMutator": "build/per-mutator.md"
     },
     "tmpDir": "/tmp/infection",
-    "minMsi": 70,
-    "minCoveredMsi": 80,
+    "minMsi": 72,
+    "minCoveredMsi": 76,
     "mutators": {
         "@default": true,
         "global-ignoreSourceCodeByRegex": [

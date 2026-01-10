@@ -4,23 +4,20 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Normalizer\Selection;
 
-final class Field implements Selection
-{
-    use \Nette\SmartObject;
+use Graphpinator\Normalizer\Directive\DirectiveSet;
+use Graphpinator\Typesystem\Field\Field as TypesystemField;
+use Graphpinator\Value\ArgumentValueSet;
 
+final readonly class Field implements Selection
+{
     public function __construct(
-        private \Graphpinator\Typesystem\Field\Field $field,
-        private string $outputName,
-        private \Graphpinator\Value\ArgumentValueSet $arguments,
-        private \Graphpinator\Normalizer\Directive\DirectiveSet $directives,
-        private ?\Graphpinator\Normalizer\Selection\SelectionSet $children = null,
+        public TypesystemField $field,
+        public string $outputName,
+        public ArgumentValueSet $arguments,
+        public DirectiveSet $directives,
+        public ?SelectionSet $children = null,
     )
     {
-    }
-
-    public function getField() : \Graphpinator\Typesystem\Field\Field
-    {
-        return $this->field;
     }
 
     public function getName() : string
@@ -28,33 +25,7 @@ final class Field implements Selection
         return $this->field->getName();
     }
 
-    public function getOutputName() : string
-    {
-        return $this->outputName;
-    }
-
-    public function getArguments() : \Graphpinator\Value\ArgumentValueSet
-    {
-        return $this->arguments;
-    }
-
-    public function getDirectives() : \Graphpinator\Normalizer\Directive\DirectiveSet
-    {
-        return $this->directives;
-    }
-
-    public function getSelections() : ?\Graphpinator\Normalizer\Selection\SelectionSet
-    {
-        return $this->children;
-    }
-
-    public function applyVariables(\Graphpinator\Normalizer\VariableValueSet $variables) : void
-    {
-        $this->arguments->applyVariables($variables);
-        $this->directives->applyVariables($variables);
-        $this->children?->applyVariables($variables);
-    }
-
+    #[\Override]
     public function accept(SelectionVisitor $visitor) : mixed
     {
         return $visitor->visitField($this);

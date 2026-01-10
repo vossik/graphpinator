@@ -4,79 +4,99 @@ declare(strict_types = 1);
 
 namespace Graphpinator;
 
-final class Graphpinator implements \Psr\Log\LoggerAwareInterface
-{
-    use \Nette\SmartObject;
+use Graphpinator\Exception\ClientAware;
+use Graphpinator\Module\ModuleSet;
+use Graphpinator\Normalizer\Finalizer;
+use Graphpinator\Normalizer\NormalizedRequest;
+use Graphpinator\Normalizer\Normalizer;
+use Graphpinator\Parser\ParsedRequest;
+use Graphpinator\Parser\Parser;
+use Graphpinator\Request\Request;
+use Graphpinator\Request\RequestFactory;
+use Graphpinator\Resolver\ErrorHandlingMode;
+use Graphpinator\Resolver\ExceptionHandler;
+use Graphpinator\Resolver\Resolver;
+use Graphpinator\Resolver\Result;
+use Graphpinator\Source\StringSource;
+use Graphpinator\Typesystem\Schema;
+use Graphpinator\Typesystem\Visitor\ValidateIntegrityVisitor;
+use Psr\Log\LogLevel;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
+final class Graphpinator implements LoggerAwareInterface
+{
+    /**
+     * Whether Graphpinator should perform schema integrity checks. Can be disabled in production to avoid unnecessary overhead.
+     */
     public static bool $validateSchema = true;
-    private \Graphpinator\Module\ModuleSet $modules;
-    private \Psr\Log\LoggerInterface $logger;
-    private \Graphpinator\Parser\Parser $parser;
-    private \Graphpinator\Normalizer\Normalizer $normalizer;
-    private \Graphpinator\Normalizer\Finalizer $finalizer;
-    private \Graphpinator\Resolver\Resolver $resolver;
+    private ExceptionHandler $exceptionHandler;
+    private Parser $parser;
+    private Normalizer $normalizer;
+    private Finalizer $finalizer;
+    private Resolver $resolver;
 
     public function __construct(
-        \Graphpinator\Typesystem\Schema $schema,
-        private bool $catchExceptions = false,
-        ?\Graphpinator\Module\ModuleSet $modules = null,
-        ?\Psr\Log\LoggerInterface $logger = null,
+        private Schema $schema,
+        bool|ErrorHandlingMode $errorHandlingMode = ErrorHandlingMode::NONE,
+        private ModuleSet $modules = new ModuleSet([]),
+        private LoggerInterface $logger = new NullLogger(),
     )
     {
-        $this->modules = $modules instanceof \Graphpinator\Module\ModuleSet
-            ? $modules
-            : new \Graphpinator\Module\ModuleSet([]);
-        $this->logger = $logger instanceof \Psr\Log\LoggerInterface
-            ? $logger
-            : new \Psr\Log\NullLogger();
-        $this->parser = new \Graphpinator\Parser\Parser();
-        $this->normalizer = new \Graphpinator\Normalizer\Normalizer($schema);
-        $this->finalizer = new \Graphpinator\Normalizer\Finalizer();
-        $this->resolver = new \Graphpinator\Resolver\Resolver();
+        $this->exceptionHandler = new ExceptionHandler($errorHandlingMode);
+        $this->parser = new Parser();
+        $this->normalizer = new Normalizer($this->schema);
+        $this->finalizer = new Finalizer();
+        $this->resolver = new Resolver();
     }
 
-    public function run(\Graphpinator\Request\RequestFactory $requestFactory) : \Graphpinator\Result
+    public function run(RequestFactory $requestFactory) : Result
     {
+        if (self::$validateSchema) {
+            $this->schema->accept(new ValidateIntegrityVisitor());
+        }
+
         try {
             $request = $requestFactory->create();
             $result = $request;
 
-            $this->logger->debug($request->getQuery());
+            $this->logger->debug($request->query);
 
             foreach ($this->modules as $module) {
                 $result = $module->processRequest($request);
 
-                if (!$result instanceof \Graphpinator\Request\Request) {
+                if (!$result instanceof Request) {
                     break;
                 }
             }
 
-            if ($result instanceof \Graphpinator\Request\Request) {
-                $result = $this->parser->parse(new \Graphpinator\Source\StringSource($request->getQuery()));
+            if ($result instanceof Request) {
+                $result = $this->parser->parse(new StringSource($request->query));
 
                 foreach ($this->modules as $module) {
                     $result = $module->processParsed($result);
 
-                    if (!$result instanceof \Graphpinator\Parser\ParsedRequest) {
+                    if (!$result instanceof ParsedRequest) {
                         break;
                     }
                 }
             }
 
-            if ($result instanceof \Graphpinator\Parser\ParsedRequest) {
+            if ($result instanceof ParsedRequest) {
                 $result = $this->normalizer->normalize($result);
 
                 foreach ($this->modules as $module) {
                     $result = $module->processNormalized($result);
 
-                    if (!$result instanceof \Graphpinator\Normalizer\NormalizedRequest) {
+                    if (!$result instanceof NormalizedRequest) {
                         break;
                     }
                 }
             }
 
-            if ($result instanceof \Graphpinator\Normalizer\NormalizedRequest) {
-                $result = $this->finalizer->finalize($result, $request->getVariables(), $request->getOperationName());
+            if ($result instanceof NormalizedRequest) {
+                $result = $this->finalizer->finalize($result, $request->variables, $request->operationName);
 
                 foreach ($this->modules as $module) {
                     $result = $module->processFinalized($result);
@@ -91,21 +111,14 @@ final class Graphpinator implements \Psr\Log\LoggerAwareInterface
 
             return $result;
         } catch (\Throwable $exception) {
-            if (!$this->catchExceptions) {
-                throw $exception;
-            }
-
             $this->logger->log(self::getLogLevel($exception), self::getLogMessage($exception));
 
-            return new \Graphpinator\Result(null, [
-                $exception instanceof \Graphpinator\Exception\GraphpinatorBase
-                    ? $exception
-                    : \Graphpinator\Exception\GraphpinatorBase::notOutputableResponse(),
-            ]);
+            return $this->exceptionHandler->handle($exception);
         }
     }
 
-    public function setLogger(\Psr\Log\LoggerInterface $logger) : void
+    #[\Override]
+    public function setLogger(LoggerInterface $logger) : void
     {
         $this->logger = $logger;
     }
@@ -117,12 +130,12 @@ final class Graphpinator implements \Psr\Log\LoggerAwareInterface
 
     private static function getLogLevel(\Throwable $exception) : string
     {
-        if ($exception instanceof \Graphpinator\Exception\GraphpinatorBase) {
+        if ($exception instanceof ClientAware) {
             return $exception->isOutputable()
-                ? \Psr\Log\LogLevel::INFO
-                : \Psr\Log\LogLevel::ERROR;
+                ? LogLevel::INFO
+                : LogLevel::ERROR;
         }
 
-        return \Psr\Log\LogLevel::EMERGENCY;
+        return LogLevel::EMERGENCY;
     }
 }

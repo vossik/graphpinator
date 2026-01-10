@@ -4,61 +4,57 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Value;
 
-final class VariableValue implements \Graphpinator\Value\InputedValue
-{
-    use \Nette\SmartObject;
+use Graphpinator\Normalizer\Exception\VariableTypeMismatch;
+use Graphpinator\Normalizer\Variable\Variable;
+use Graphpinator\Normalizer\VariableValueSet;
+use Graphpinator\Typesystem\Contract\Type;
+use Graphpinator\Typesystem\Visitor\IsInputableVisitor;
+use Graphpinator\Typesystem\Visitor\IsInstanceOfVisitor;
+use Graphpinator\Value\Contract\InputedValue;
+use Graphpinator\Value\Contract\InputedValueVisitor;
 
-    private ?\Graphpinator\Value\InputedValue $value = null;
+final class VariableValue implements InputedValue
+{
+    private ?InputedValue $value = null;
 
     public function __construct(
-        private \Graphpinator\Typesystem\Contract\Inputable $type,
-        private \Graphpinator\Normalizer\Variable\Variable $variable,
+        public readonly Type $type,
+        public readonly Variable $variable,
     )
     {
-        // flipped because of contravariance, isInstanceOf is covariant
-        if (!$type->isInstanceOf($variable->getType())) {
-            throw new \Graphpinator\Normalizer\Exception\VariableTypeMismatch();
+        $isInputable = $this->type->accept(new IsInputableVisitor());
+        $isCompatible = $variable->type->accept(new IsInstanceOfVisitor($type));
+
+        if (!$isInputable || !$isCompatible) {
+            throw new VariableTypeMismatch();
         }
     }
 
-    public function getRawValue(bool $forResolvers = false) : mixed
+    #[\Override]
+    public function accept(InputedValueVisitor $visitor) : mixed
     {
-        return $this->value->getRawValue($forResolvers);
+        return $visitor->visitVariable($this);
     }
 
-    public function getConcreteValue() : \Graphpinator\Value\InputedValue
+    #[\Override]
+    public function getRawValue() : mixed
     {
-        return $this->value;
+        return $this->value->getRawValue();
     }
 
-    public function getVariable() : \Graphpinator\Normalizer\Variable\Variable
-    {
-        return $this->variable;
-    }
-
-    public function getType() : \Graphpinator\Typesystem\Contract\Inputable
+    #[\Override]
+    public function getType() : Type
     {
         return $this->type;
     }
 
-    public function printValue() : string
+    public function setVariableValue(VariableValueSet $variables) : void
     {
-        throw new \Graphpinator\Exception\OperationNotSupported();
+        $this->value = $variables->get($this->variable->name);
     }
 
-    public function applyVariables(\Graphpinator\Normalizer\VariableValueSet $variables) : void
+    public function getConcreteValue() : InputedValue
     {
-        $this->value = $variables->get($this->variable->getName());
-    }
-
-    public function resolveRemainingDirectives() : void
-    {
-        $this->value->resolveRemainingDirectives();
-    }
-
-    public function isSame(Value $compare) : bool
-    {
-        return $compare instanceof self
-            && $compare->variable->getName() === $this->variable->getName();
+        return $this->value;
     }
 }

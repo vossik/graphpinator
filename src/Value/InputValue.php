@@ -4,119 +4,53 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Value;
 
-final class InputValue implements \Graphpinator\Value\InputedValue, \IteratorAggregate
-{
-    use \Nette\SmartObject;
+use Graphpinator\Typesystem\InputType;
+use Graphpinator\Value\Contract\InputedValue;
+use Graphpinator\Value\Contract\InputedValueVisitor;
 
+/**
+ * @implements \IteratorAggregate<ArgumentValue>
+ */
+final readonly class InputValue implements InputedValue, \IteratorAggregate
+{
     public function __construct(
-        private \Graphpinator\Typesystem\InputType $type,
-        private \stdClass $value,
+        public InputType $type,
+        /** @var \stdClass{...ArgumentValue} */
+        public \stdClass $value,
     )
     {
     }
 
-    public function getRawValue(bool $forResolvers = false) : object
+    #[\Override]
+    public function accept(InputedValueVisitor $visitor) : mixed
     {
-        $return = $forResolvers === true
-            ? new ($this->getType()->getDataClass())
-            : new \stdClass();
+        return $visitor->visitInput($this);
+    }
 
-        foreach ((array) $this->value as $argumentName => $argumentValue) {
-            \assert($argumentValue instanceof \Graphpinator\Value\ArgumentValue);
+    #[\Override]
+    public function getRawValue() : object
+    {
+        $return = new \stdClass();
 
-            $return->{$argumentName} = $argumentValue->getValue()->getRawValue($forResolvers);
+        foreach ($this as $argumentName => $argumentValue) {
+            $return->{$argumentName} = $argumentValue->value->getRawValue();
         }
 
         return $return;
     }
 
-    public function getType() : \Graphpinator\Typesystem\InputType
+    #[\Override]
+    public function getType() : InputType
     {
         return $this->type;
     }
 
-    public function printValue() : string
-    {
-        $component = [];
-
-        foreach ((array) $this->value as $argumentName => $argumentValue) {
-            \assert($argumentValue instanceof \Graphpinator\Value\ArgumentValue);
-
-            $component[] = $argumentName . ':' . $argumentValue->getValue()->printValue();
-        }
-
-        return '{' . \implode(',', $component) . '}';
-    }
-
-    public function applyVariables(\Graphpinator\Normalizer\VariableValueSet $variables) : void
-    {
-        foreach ((array) $this->value as $argumentValue) {
-            \assert($argumentValue instanceof \Graphpinator\Value\ArgumentValue);
-
-            $argumentValue->applyVariables($variables);
-        }
-
-        foreach ($this->type->getDirectiveUsages() as $directive) {
-            $directiveDef = $directive->getDirective();
-            \assert($directiveDef instanceof \Graphpinator\Typesystem\Location\InputObjectLocation);
-            $directiveDef->resolveInputObject($directive->getArgumentValues(), $this);
-        }
-    }
-
-    public function resolveRemainingDirectives() : void
-    {
-        foreach ((array) $this->value as $argumentValue) {
-            \assert($argumentValue instanceof \Graphpinator\Value\ArgumentValue);
-
-            $argumentValue->resolveNonPureDirectives();
-        }
-    }
-
-    public function isSame(Value $compare) : bool
-    {
-        if (!$compare instanceof self) {
-            return false;
-        }
-
-        $secondObject = $compare->value;
-
-        if (\count((array) $secondObject) !== \count((array) $this->value)) {
-            return false;
-        }
-
-        foreach ((array) $this->value as $argumentName => $argumentValue) {
-            \assert($argumentValue instanceof \Graphpinator\Value\ArgumentValue);
-
-            if (!\property_exists($secondObject, $argumentName) ||
-                !$argumentValue->getValue()->isSame($secondObject->{$argumentName}->getValue())) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
+    /**
+     * @return \ArrayIterator<ArgumentValue>
+     */
+    #[\Override]
     public function getIterator() : \ArrayIterator
     {
-        return new \ArrayIterator($this->value);
-    }
-
-    public function __isset(string $name) : bool
-    {
-        return \property_exists($this->value, $name);
-    }
-
-    public function __get(string $name) : \Graphpinator\Value\ArgumentValue
-    {
-        return $this->value->{$name};
-    }
-
-    public function __set(string $name, \Graphpinator\Value\ArgumentValue $value) : void
-    {
-        if ($value->getArgument() !== $this->type->getArguments()[$name]) {
-            throw new \Exception();
-        }
-
-        $this->value->{$name} = $value;
+        return new \ArrayIterator((array) $this->value);
     }
 }

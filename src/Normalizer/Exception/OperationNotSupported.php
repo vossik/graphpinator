@@ -4,14 +4,16 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Normalizer\Exception;
 
-final class OperationNotSupported extends \Graphpinator\Normalizer\Exception\NormalizerError
+use Graphpinator\Parser\OperationType;
+
+final class OperationNotSupported extends NormalizerError
 {
     public const MESSAGE = 'Operation "%s" is not supported by this service.';
 
-    public function __construct(string $operation)
+    public function __construct(
+        OperationType $operation,
+    )
     {
-        $this->messageArgs = [$operation];
-
-        parent::__construct();
+        parent::__construct([$operation->value]);
     }
 }

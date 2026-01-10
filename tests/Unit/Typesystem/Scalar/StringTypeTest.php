@@ -4,9 +4,16 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Tests\Unit\Typesystem\Scalar;
 
-final class StringTypeTest extends \PHPUnit\Framework\TestCase
+use Graphpinator\Common\Path;
+use Graphpinator\Typesystem\Spec\StringType;
+use Graphpinator\Value\Exception\InvalidValue;
+use Graphpinator\Value\Visitor\ConvertRawValueVisitor;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+final class StringTypeTest extends TestCase
 {
-    public function simpleDataProvider() : array
+    public static function simpleDataProvider() : array
     {
         return [
             ['abc'],
@@ -15,7 +22,7 @@ final class StringTypeTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    public function invalidDataProvider() : array
+    public static function invalidDataProvider() : array
     {
         return [
             [123],
@@ -25,28 +32,22 @@ final class StringTypeTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider simpleDataProvider
-     * @param string|null $rawValue
-     */
+    #[DataProvider('simpleDataProvider')]
     public function testValidateValue($rawValue) : void
     {
-        $string = new \Graphpinator\Typesystem\Spec\StringType();
-        $value = $string->accept(new \Graphpinator\Value\ConvertRawValueVisitor($rawValue, new \Graphpinator\Common\Path()));
+        $string = new StringType();
+        $value = $string->accept(new ConvertRawValueVisitor($rawValue, new Path()));
 
         self::assertSame($string, $value->getType());
         self::assertSame($rawValue, $value->getRawValue());
     }
 
-    /**
-     * @dataProvider invalidDataProvider
-     * @param int|float|bool|array $rawValue
-     */
+    #[DataProvider('invalidDataProvider')]
     public function testValidateValueInvalid($rawValue) : void
     {
-        $this->expectException(\Graphpinator\Exception\Value\InvalidValue::class);
+        $this->expectException(InvalidValue::class);
 
-        $string = new \Graphpinator\Typesystem\Spec\StringType();
-        $string->accept(new \Graphpinator\Value\ConvertRawValueVisitor($rawValue, new \Graphpinator\Common\Path()));
+        $string = new StringType();
+        $string->accept(new ConvertRawValueVisitor($rawValue, new Path()));
     }
 }

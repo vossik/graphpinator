@@ -4,9 +4,16 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Tests\Unit\Typesystem\Scalar;
 
-final class FloatTypeTest extends \PHPUnit\Framework\TestCase
+use Graphpinator\Common\Path;
+use Graphpinator\Typesystem\Spec\FloatType;
+use Graphpinator\Value\Exception\InvalidValue;
+use Graphpinator\Value\Visitor\ConvertRawValueVisitor;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+final class FloatTypeTest extends TestCase
 {
-    public function simpleDataProvider() : array
+    public static function simpleDataProvider() : array
     {
         return [
             [123.123, 123.123],
@@ -17,7 +24,7 @@ final class FloatTypeTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    public function invalidDataProvider() : array
+    public static function invalidDataProvider() : array
     {
         return [
             [true],
@@ -26,29 +33,22 @@ final class FloatTypeTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @dataProvider simpleDataProvider
-     * @param float|null $rawValue
-     * @param float|null $resultValue
-     */
+    #[DataProvider('simpleDataProvider')]
     public function testValidateValue($rawValue, $resultValue) : void
     {
-        $float = new \Graphpinator\Typesystem\Spec\FloatType();
-        $value = $float->accept(new \Graphpinator\Value\ConvertRawValueVisitor($rawValue, new \Graphpinator\Common\Path()));
+        $float = new FloatType();
+        $value = $float->accept(new ConvertRawValueVisitor($rawValue, new Path()));
 
         self::assertSame($float, $value->getType());
         self::assertSame($resultValue, $value->getRawValue());
     }
 
-    /**
-     * @dataProvider invalidDataProvider
-     * @param int|bool|string|array $rawValue
-     */
+    #[DataProvider('invalidDataProvider')]
     public function testValidateValueInvalid($rawValue) : void
     {
-        $this->expectException(\Graphpinator\Exception\Value\InvalidValue::class);
+        $this->expectException(InvalidValue::class);
 
-        $float = new \Graphpinator\Typesystem\Spec\FloatType();
-        $float->accept(new \Graphpinator\Value\ConvertRawValueVisitor($rawValue, new \Graphpinator\Common\Path()));
+        $float = new FloatType();
+        $float->accept(new ConvertRawValueVisitor($rawValue, new Path()));
     }
 }

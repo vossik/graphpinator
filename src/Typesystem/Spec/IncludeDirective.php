@@ -4,71 +4,76 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Spec;
 
-final class IncludeDirective extends \Graphpinator\Typesystem\Directive implements
-    \Graphpinator\Typesystem\Location\FieldLocation,
-    \Graphpinator\Typesystem\Location\InlineFragmentLocation,
-    \Graphpinator\Typesystem\Location\FragmentSpreadLocation
+use Graphpinator\Typesystem\Argument\Argument;
+use Graphpinator\Typesystem\Argument\ArgumentSet;
+use Graphpinator\Typesystem\Attribute\Description;
+use Graphpinator\Typesystem\Container;
+use Graphpinator\Typesystem\Directive;
+use Graphpinator\Typesystem\Field\Field;
+use Graphpinator\Typesystem\Location\FieldLocation;
+use Graphpinator\Typesystem\Location\FragmentSpreadLocation;
+use Graphpinator\Typesystem\Location\InlineFragmentLocation;
+use Graphpinator\Typesystem\Location\SelectionDirectiveResult;
+use Graphpinator\Value\ArgumentValueSet;
+use Graphpinator\Value\FieldValue;
+
+#[Description('Built-in include directive')]
+final class IncludeDirective extends Directive implements
+    FieldLocation,
+    InlineFragmentLocation,
+    FragmentSpreadLocation
 {
     protected const NAME = 'include';
-    protected const DESCRIPTION = 'Built-in include directive.';
 
-    public function validateFieldUsage(
-        \Graphpinator\Typesystem\Field\Field $field,
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : bool
+    #[\Override]
+    public function validateFieldUsage(Field $field, ArgumentValueSet $arguments) : bool
     {
         return true;
     }
 
-    public function resolveFieldBefore(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : string
+    #[\Override]
+    public function resolveFieldBefore(ArgumentValueSet $arguments) : SelectionDirectiveResult
     {
-        return $arguments->offsetGet('if')->getValue()->getRawValue()
-            ? \Graphpinator\Typesystem\Location\FieldLocation::NONE
-            : \Graphpinator\Typesystem\Location\FieldLocation::SKIP;
+        return $arguments->offsetGet('if')->value->getRawValue() === true
+            ? SelectionDirectiveResult::NONE
+            : SelectionDirectiveResult::SKIP;
     }
 
-    public function resolveFieldAfter(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-        \Graphpinator\Value\FieldValue $fieldValue,
-    ) : string
+    #[\Override]
+    public function resolveFieldAfter(ArgumentValueSet $arguments, FieldValue $fieldValue) : SelectionDirectiveResult
     {
-        return \Graphpinator\Typesystem\Location\FieldLocation::NONE;
+        return SelectionDirectiveResult::NONE;
     }
 
-    public function resolveFragmentSpreadBefore(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : string
+    #[\Override]
+    public function resolveFragmentSpreadBefore(ArgumentValueSet $arguments) : SelectionDirectiveResult
     {
         return $this->resolveFieldBefore($arguments);
     }
 
-    public function resolveFragmentSpreadAfter(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : void
+    #[\Override]
+    public function resolveFragmentSpreadAfter(ArgumentValueSet $arguments) : void
     {
         // nothing here
     }
 
-    public function resolveInlineFragmentBefore(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : string
+    #[\Override]
+    public function resolveInlineFragmentBefore(ArgumentValueSet $arguments) : SelectionDirectiveResult
     {
         return $this->resolveFieldBefore($arguments);
     }
 
-    public function resolveInlineFragmentAfter(
-        \Graphpinator\Value\ArgumentValueSet $arguments,
-    ) : void
+    #[\Override]
+    public function resolveInlineFragmentAfter(ArgumentValueSet $arguments) : void
     {
         // nothing here
     }
 
-    protected function getFieldDefinition() : \Graphpinator\Typesystem\Argument\ArgumentSet
+    #[\Override]
+    protected function getFieldDefinition() : ArgumentSet
     {
-        return new \Graphpinator\Typesystem\Argument\ArgumentSet([
-            new \Graphpinator\Typesystem\Argument\Argument('if', \Graphpinator\Typesystem\Container::Boolean()->notNull()),
+        return new ArgumentSet([
+            new Argument('if', Container::Boolean()->notNull()),
         ]);
     }
 }

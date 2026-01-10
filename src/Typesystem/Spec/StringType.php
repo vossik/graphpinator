@@ -4,13 +4,28 @@ declare(strict_types = 1);
 
 namespace Graphpinator\Typesystem\Spec;
 
-final class StringType extends \Graphpinator\Typesystem\ScalarType
+use Graphpinator\Typesystem\Attribute\Description;
+use Graphpinator\Typesystem\ScalarType;
+
+/**
+ * @extends ScalarType<string>
+ */
+#[Description('String built-in type')]
+final class StringType extends ScalarType
 {
     protected const NAME = 'String';
-    protected const DESCRIPTION = 'String built-in type.';
 
-    public function validateNonNullValue(mixed $rawValue) : bool
+    #[\Override]
+    public function validateAndCoerceInput(mixed $rawValue) : ?string
     {
-        return \is_string($rawValue);
+        return \is_string($rawValue)
+            ? $rawValue
+            : null;
+    }
+
+    #[\Override]
+    public function coerceOutput(mixed $rawValue) : string
+    {
+        return $rawValue;
     }
 }
